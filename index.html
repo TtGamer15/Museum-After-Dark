@@ -173,6 +173,25 @@ input.code-in{text-transform:uppercase;letter-spacing:.14em;font-weight:600}
 .lose-title{color:var(--velvet)}
 
 button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outline-offset:2px}
+/* Sound settings */
+.sound{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.sound .row{gap:8px}
+.vol{display:flex;align-items:center;gap:12px}
+.vol input{flex:1;min-width:0;accent-color:var(--brass);height:28px}
+.vol b{min-width:3.2ch;text-align:right;font-variant-numeric:tabular-nums}
+.seg.styles{flex-wrap:wrap}
+.seg.styles button{flex:1 1 30%;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15;padding:4px 6px}
+.seg.styles small{font-weight:500;font-size:11px;opacity:.8}
+.now{font-size:13px;color:var(--dust);margin:0}
+/* Controller */
+.padico{width:20px;height:20px;display:inline-block;vertical-align:-5px;color:var(--torch)}
+#app.pad .padfocus{outline:3px solid var(--torch)!important;outline-offset:3px!important;box-shadow:0 0 0 7px color-mix(in srgb,var(--torch) 24%,transparent)!important}
+#padHint{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;width:max-content;max-width:calc(100% - 24px);display:none;gap:6px 16px;align-items:center;justify-content:center;flex-wrap:wrap;padding:7px 14px;border-radius:999px;background:color-mix(in srgb,var(--gallery) 92%,transparent);border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);font-size:13px;font-weight:600;pointer-events:none;z-index:7}
+#app.pad #padHint.show{display:flex}
+#padHint .ph{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.padmap{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.padmap li{display:flex;align-items:center;gap:10px}
+.padmap .pk{display:inline-flex;gap:3px;min-width:50px}
 @media (max-width:460px){
   .hud-name{font-size:14px}
   .stat{padding:0 8px;font-size:13px}
@@ -207,6 +226,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
   <main class="stage" id="stage">
     <canvas id="game" aria-label="Museum game board"></canvas>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div id="padHint" aria-hidden="true"></div>
     <div class="invite" id="invitePop" role="dialog" aria-label="Room invite" hidden>
       <p id="invText">A friend invited you!</p>
       <button class="btn small primary" id="btnInvJoin">Join</button>
@@ -238,7 +258,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <li>Let go of the controls to freeze. If a flashlight lands on you while you're moving, you're caught.</li>
             <li>Find every gem, then get back on your pedestal before sunrise at 6:00 AM.</li>
             <li>Running makes noise. Tiptoe when a guard is close.</li>
-            <li>On a phone, drag anywhere to sneak. A gentle drag tiptoes. On a computer, use <kbd>WASD</kbd> or the arrow keys and hold <kbd>Shift</kbd> to tiptoe.</li>
+            <li>On a phone, drag anywhere to sneak. A gentle drag tiptoes. On a computer, use <kbd>WASD</kbd> or the arrow keys and hold <kbd>Shift</kbd> to tiptoe. With a controller, tilt the left stick a little to tiptoe.</li>
           </ul>
           <h4>As the night guard</h4>
           <ul>
@@ -248,16 +268,34 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <li>Rings in the dark are running footsteps. Point your light that way.</li>
             <li>Staring at a frozen exhibit makes your flashlight overheat and turn off for 2 seconds.</li>
             <li>Spinning around nonstop makes you dizzy for a moment.</li>
-            <li>On a phone, your left thumb walks and your right thumb aims. On a computer, <kbd>WASD</kbd> walks and the mouse aims.</li>
+            <li>On a phone, your left thumb walks and your right thumb aims. On a computer, <kbd>WASD</kbd> walks and the mouse aims. With a controller, the left stick walks and the right stick aims.</li>
           </ul>
+          <h4>With a controller</h4>
+          <ul class="padmap" id="padMap"></ul>
         </details>
         <div class="row">
           <button class="btn primary grow" id="btnPlay">Start Night I</button>
           <button class="btn ghost grow" id="btnFriends">Play with friends<span class="badge" id="fBadge" hidden></span></button>
         </div>
-        <div class="row">
-          <button class="btn ghost" id="btnSoundMenu" aria-pressed="true">Sound on</button>
-        </div>
+        <details class="how" id="soundBox">
+          <summary>Sound &amp; music<span class="now" id="musicNow" style="margin-left:auto"></span></summary>
+          <div class="sound">
+            <div class="row">
+              <button class="btn ghost grow" id="btnSoundMenu" aria-pressed="true">Sound on</button>
+              <button class="btn ghost grow" id="btnMusicMenu" aria-pressed="true">Music on</button>
+            </div>
+            <div class="vol">
+              <label class="lbl" for="volIn">Volume</label>
+              <input type="range" id="volIn" min="0" max="100" step="5" value="70">
+              <b id="volOut">70</b>
+            </div>
+            <div class="field">
+              <span class="lbl">Music style</span>
+              <div class="seg styles" id="styleRow" role="group" aria-label="Music style"></div>
+            </div>
+            <button class="btn ghost" id="btnSilent" aria-pressed="false" hidden>Play sound when my phone is on silent: off</button>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -291,6 +329,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
         </div>
         <div class="row">
           <button class="btn ghost" id="btnSoundPause" aria-pressed="true">Sound on</button>
+          <button class="btn ghost" id="btnMusicPause" aria-pressed="true">Music on</button>
           <button class="btn ghost" id="btnToMenu">Exit to menu</button>
         </div>
       </div>
@@ -538,7 +577,7 @@ function cleanName(v, max = 14){
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
   return s || 'Player';
 }
-function saveDefaults(){ return {best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
+function saveDefaults(){ return {best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
 function loadSave(seed){
   const b = saveDefaults();
@@ -549,6 +588,10 @@ function loadSave(seed){
     b.best = stars(s.best); b.bestG = stars(s.bestG);
     if (EX_IDS.includes(s.exhibit)) b.exhibit = s.exhibit;
     if (typeof s.sound === 'boolean') b.sound = s.sound;
+    if (typeof s.mus === 'boolean') b.mus = s.mus;
+    if (typeof s.mstyle === 'string') b.mstyle = s.mstyle;
+    if (Number.isFinite(s.vol)) b.vol = clamp(s.vol, 0, 1);
+    if (typeof s.silentOk === 'boolean') b.silentOk = s.silentOk;
     if (s.play === 'guard') b.play = 'guard';
     if (typeof s.name === 'string' && s.name.trim()) b.name = cleanName(s.name);
     if (typeof s.fid === 'string' && FID_RE.test(s.fid)) b.fid = s.fid;
@@ -602,24 +645,60 @@ function clockStr(sec, dur){
   return `${h === 0 ? 12 : h}:${String(mm).padStart(2,'0')} AM`;
 }
 
-/* ---------- audio ---------- */
-let actx = null;
+/* ---------- sound (Web Audio, no sound files) ---------- */
+const AU = {ctx:null, master:null, fx:null, noise:null, unlocked:false, tag:null, timer:0};
+function silentWavURI(){
+  const n = 4000, buf = new Uint8Array(44 + n), dv = new DataView(buf.buffer), w = (o, t) => { for (let i = 0; i < t.length; i++) buf[o + i] = t.charCodeAt(i); };
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true); buf.fill(128, 44);
+  let bin = ''; for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+  return 'data:audio/wav;base64,' + btoa(bin);
+}
+// iPhones mute web audio with the silent switch unless the page asks to play like media.
+function applyAudioSession(restart){
+  const want = save.silentOk ? 'playback' : 'ambient';
+  try { if (navigator.audioSession && navigator.audioSession.type !== want) navigator.audioSession.type = want; else return; } catch (e) { return; }
+  const c = AU.ctx; if (restart && c && c.state === 'running') { try { c.suspend().then(() => c.resume()).catch(() => {}); } catch (e) {} }
+}
 function audioInit(){
-  if (!save.sound) return;
   try {
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-    if (actx.state === 'suspended') actx.resume();
-  } catch (e) { actx = null; }
+    if (!AU.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const c = new AC(); AU.ctx = c;
+      AU.master = c.createGain(); AU.master.gain.value = save.vol; AU.master.connect(c.destination);
+      AU.fx = c.createGain(); AU.fx.gain.value = save.sound ? 1 : 0; AU.fx.connect(AU.master);
+      const nb = c.createBuffer(1, c.sampleRate, c.sampleRate), d = nb.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
+      AU.noise = nb;
+      musicInit();
+    }
+    applyAudioSession(false);
+    const c = AU.ctx;
+    if (c.state !== 'running') { try { const p = c.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    if (!AU.unlocked) {
+      AU.unlocked = true;
+      try { const b = c.createBuffer(1, 1, 22050), s0 = c.createBufferSource(); s0.buffer = b; s0.connect(c.destination); s0.start(0); } catch (e) {}
+      if (!navigator.audioSession && save.silentOk) { try { AU.tag = new Audio(silentWavURI()); AU.tag.loop = true; AU.tag.setAttribute('playsinline', ''); const p = AU.tag.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    }
+    if (!AU.timer) AU.timer = setInterval(musicSchedule, 250);
+  } catch (e) {}
+}
+function applyVolume(){
+  if (!AU.ctx) return; const t = AU.ctx.currentTime;
+  AU.master.gain.setTargetAtTime(save.vol, t, .03);
+  AU.fx.gain.setTargetAtTime(save.sound ? 1 : 0, t, .03);
+  if (MU.gain) MU.gain.gain.setTargetAtTime(save.mus ? .55 : 0, t, .5);
 }
 function tone(f, dur, type='sine', vol=.07, when=0, slide=null){
-  if (!actx || !save.sound) return;
+  const c = AU.ctx; if (!c || !save.sound || c.state !== 'running') return;
   try {
-    const t0 = actx.currentTime + when, o = actx.createOscillator(), g = actx.createGain();
+    const t0 = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t0);
     if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
     g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .015);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0 + dur + .05);
+    o.connect(g); g.connect(AU.fx); o.onended = () => { try { o.disconnect(); g.disconnect(); } catch (e) {} };
+    o.start(t0); o.stop(t0 + dur + .05);
   } catch (e) {}
 }
 const SFX = {
@@ -630,6 +709,7 @@ const SFX = {
   gotcha(){ tone(523,.1,'triangle',.07); tone(784,.18,'triangle',.07,.08); },
   fizz(){ tone(900,.25,'sawtooth',.03,0,120); },
   join(){ tone(660,.1,'triangle',.06); tone(990,.14,'triangle',.06,.09); },
+  click(){ tone(880,.035,'triangle',.04); },
   win(){ [523,659,784,1047].forEach((f,i) => tone(f,.22,'triangle',.07,i*.11)); },
   lose(){ [392,330,262].forEach((f,i) => tone(f,.3,'triangle',.06,i*.16)); }
 };
@@ -872,7 +952,7 @@ function aiReact(){
       if (!ex.moving && ((d < g.range*.8 && guardSees(g, ex.x, ex.y)) || d < 32)) { startLook(g, 'inspect', ex); break; }
       if (ex.running && d < HEAR) {
         startLook(g, 'alert', ex);
-        if (ex === me.ent) hintOnce('noise', touchy() ? 'Running is noisy! Drag gently to tiptoe near guards.' : 'Running is noisy! Hold Shift to tiptoe near guards.', 3600);
+        if (ex === me.ent) hintOnce('noise', say({touch:'Running is noisy! Drag gently to tiptoe near guards.', keys:'Running is noisy! Hold Shift to tiptoe near guards.', pad:'Running is noisy! Tilt the stick just a little to tiptoe near guards.'}), 3600);
         break;
       }
     }
@@ -1058,6 +1138,7 @@ function readInput(){
   }
   const kx = (keys.right?1:0) - (keys.left?1:0), ky = (keys.down?1:0) - (keys.up?1:0);
   if (kx || ky) { const m = Math.hypot(kx, ky); x = kx/m; y = ky/m; tip = keys.shift; }
+  if (padIn.x || padIn.y) { x = padIn.x; y = padIn.y; tip = padIn.tip; }
   return {x, y, tip};
 }
 
@@ -1069,6 +1150,9 @@ function hint(text, ms=3000){
 }
 function hintOnce(key, text, ms){ if (game.hints[key]) return; game.hints[key] = true; hint(text, ms); }
 const touchy = () => game.lastInput === 'touch';
+const padded = () => game.lastInput === 'pad';
+// The right words for whatever the player is holding.
+function say(o){ return padded() ? o.pad : touchy() ? o.touch : o.keys; }
 
 /* ---------- me: exhibit ---------- */
 function updateMyExhibit(dt){
@@ -1102,14 +1186,16 @@ function updateMyGuard(dt){
     g.phase += Math.hypot(g.x-px, g.y-py)*.2; g.heading = Math.atan2(iy, ix); g.moving = true;
   } else g.moving = false;
   let aim = null;
-  if (aimStick.active) {
+  if (padIn.aim != null) aim = padIn.aim;
+  else if (padIn.rot) aim = g.angle + padIn.rot*.6;
+  else if (aimStick.active) {
     const dx = aimStick.x - aimStick.ox, dy = aimStick.y - aimStick.oy;
     if (Math.hypot(dx, dy) > STICK_R*.22) aim = Math.atan2(dy, dx);
   } else if (performance.now() - mouse.at < 2500) {
     const wx = (mouse.sx*dpr - view.ox)/view.s, wy = (mouse.sy*dpr - view.oy)/view.s;
     if (Math.hypot(wx - g.x, wy - g.y) > 8) aim = Math.atan2(wy - g.y, wx - g.x);
   } else if (keys.rotL || keys.rotR) aim = g.angle + (keys.rotR ? .6 : -.6);
-  else if (g.moving) aim = g.heading;
+  else if (g.moving && !(padded() && performance.now() - padIn.aimAt < 4000)) aim = g.heading;
   const before = g.angle;
   if (g.dizzy > 0) { g.dizzy -= dt; g.angle += Math.sin(g.t*2.6)*.7*dt; g.target = g.angle; }
   else {
@@ -1416,6 +1502,317 @@ function drawBubble(c, x, y, text, color){
 
 
 
+/* ---------- music: made in code, like Noodle Bots ----------
+   Each style plays into its own pair of volume knobs, so switching styles fades the old one out.
+   A heartbeat joins in when a flashlight gets close to you. */
+const MU = {gain:null, bus:null, dry:null, dl:null, fb:null, lp:null, side:null, wet:null, next:0, bar:0, cur:'sneaky', since:0, hb:0, tension:0};
+const MUSIC_AUTO = ['sneaky', 'midnight', 'moonlight', 'spooky'];
+const curStyle = () => save.mstyle === 'auto' ? MU.cur : save.mstyle;
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const mpick = a => a[Math.floor(Math.random()*a.length)];
+function musicInit(){
+  const c = AU.ctx;
+  MU.gain = c.createGain(); MU.gain.gain.value = save.mus ? .55 : 0; MU.gain.connect(AU.master);
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.connect(MU.gain); MU.lp = lp;
+  const dl = c.createDelay(2); dl.delayTime.value = .45; const fb = c.createGain(); fb.gain.value = .4;
+  const dlp = c.createBiquadFilter(); dlp.type = 'lowpass'; dlp.frequency.value = 1500;
+  dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(lp); MU.dl = dl; MU.fb = fb;
+  MU.bus = c.createGain(); MU.bus.connect(lp); MU.bus.connect(dl);
+  MU.dry = c.createGain(); MU.dry.connect(MU.gain);
+  MU.beat = c.createGain(); MU.beat.gain.value = 0; MU.beat.connect(MU.gain);
+  MU.cur = save.mstyle === 'auto' || !MSTYLES[save.mstyle] ? 'sneaky' : save.mstyle; MU.since = c.currentTime;
+  newSide(); styleFx(0);
+}
+function newSide(fade){
+  const c = AU.ctx, now = c.currentTime;
+  if (MU.side) { const old = MU.side; for (const g of old) g.gain.setTargetAtTime(0, now, fade || .12); setTimeout(() => { for (const g of old) try { g.disconnect(); } catch (e) {} }, 3000); }
+  const v = (MSTYLES[curStyle()] || MSTYLES.sneaky).vol, wet = c.createGain(), dry = c.createGain();
+  wet.gain.value = dry.gain.value = v; wet.connect(MU.bus); dry.connect(MU.dry);
+  MU.side = [wet, dry]; MU.wet = wet;
+}
+function styleFx(tc){
+  const st = MSTYLES[curStyle()] || MSTYLES.sneaky, now = AU.ctx.currentTime;
+  MU.dl.delayTime.setTargetAtTime(st.echo[0], now, tc || .01); MU.fb.gain.setTargetAtTime(st.echo[1], now, tc || .01); MU.lp.frequency.setTargetAtTime(st.lp, now, tc || .01);
+}
+const ended = (src, ...nodes) => { src.onended = () => { try { src.disconnect(); for (const n of nodes) n.disconnect(); } catch (e) {} }; };
+function voice(freq, t, attack, hold, release, vol, type, detune, out, glideTo, vib){
+  const c = AU.ctx, o = c.createOscillator(), g = c.createGain(), end = t + attack + hold + release;
+  o.type = type; o.frequency.setValueAtTime(freq, t); if (detune) o.detune.value = detune;
+  if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t + attack + hold);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack);
+  g.gain.setValueAtTime(vol, t + attack + hold); g.gain.exponentialRampToValueAtTime(0.0001, end);
+  let lfo = null, lg = null;
+  if (vib) { lfo = c.createOscillator(); lg = c.createGain(); lfo.frequency.value = vib[0]; lg.gain.value = vib[1]; lfo.connect(lg); lg.connect(o.detune); lfo.start(t); lfo.stop(end + .05); }
+  o.connect(g); g.connect(out || MU.wet); ended(o, g); if (lfo) ended(lfo, lg);
+  o.start(t); o.stop(end + .05);
+}
+function hiss(t, dur, type, freq, vol, out){
+  if (!AU.noise) return;
+  const c = AU.ctx, s0 = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s0.buffer = AU.noise; f.type = type; f.frequency.value = freq; if (type === 'bandpass') f.Q.value = .9;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s0.connect(f); f.connect(g); g.connect(out || MU.side[1]); ended(s0, f, g); s0.start(t, Math.random()*.5); s0.stop(t + dur + .02);
+}
+function thump(t, f0, f1, dur, vol, out){
+  const c = AU.ctx, o = c.createOscillator(), g = c.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur*.6);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(out || MU.side[1]); ended(o, g); o.start(t); o.stop(t + dur + .02);
+}
+// chords as [bass note, chord notes] in MIDI numbers
+const P_SNEAK = [[38, [62, 65, 69]], [34, [62, 65, 70]], [43, [62, 67, 70]], [45, [61, 64, 69]]];
+const P_MID = [[45, [57, 60, 64, 71]], [41, [57, 60, 64, 65]], [38, [57, 60, 62, 65]], [40, [56, 59, 62, 64]]];
+const P_MOON = [[36, [60, 64, 67, 71]], [33, [57, 60, 64, 67]], [29, [57, 60, 65, 69]], [31, [55, 59, 62, 67]]];
+// Tiptoe: plucky bass that sneaks up and down, with little staccato steps on top.
+function sneakyBar(t, n){
+  const bar = MSTYLES.sneaky.bar, [bass, ch] = P_SNEAK[n % 4], s = bar / 8, scale = [62, 64, 65, 67, 69, 70, 73, 74];
+  const line = [0, null, 7, null, 12, null, 7, n % 4 === 3 ? 6 : null];
+  for (let k = 0; k < 8; k++) {
+    const tk = t + k*s;
+    if (line[k] != null) voice(mtof(bass + 12 + line[k]), tk, .004, s*.18, .14, .07, 'triangle', 0, MU.side[1]);
+    if (k === 2 || k === 6) hiss(tk, .06, 'bandpass', 3200, .035);
+    if (k % 2 === 1 && Math.random() < .7) voice(mtof(mpick(scale) + 12), tk + (Math.random() < .3 ? s/2 : 0), .003, s*.08, .1, .022, 'square', 0);
+  }
+  if (n % 2 === 0) for (const m of ch) voice(mtof(m), t, .4, bar*.6, .8, .006, 'sine', 0);
+}
+// Midnight: soft minor chords and a music box that echoes down the halls.
+function midnightBar(t, n){
+  const bar = MSTYLES.midnight.bar, [bass, ch] = P_MID[n % 4], s = bar / 8;
+  for (const m of ch) voice(mtof(m), t, 1, bar - 1, 1.8, .012, 'sine', 0);
+  voice(mtof(bass + 12), t, .6, bar - .6, 1.6, .04, 'sine', 0);
+  const arp = [0, 1, 2, 3, 2, 1, 3, 2], up = n % 2 ? 24 : 12;
+  for (let k = 0; k < 8; k++) {
+    if (Math.random() < .82) {
+      const f = mtof(ch[arp[k] % ch.length] + up), tk = t + k*s;
+      voice(f, tk, .003, .03, .9, .03, 'sine', 0); voice(f*2.01, tk, .003, .02, .4, .008, 'sine', 0);
+    }
+  }
+}
+// Spooky: a low hum, a ghostly whistle that slides between notes, and a far-off bell.
+function spookyBar(t, n){
+  const bar = MSTYLES.spooky.bar, root = n % 4 === 2 ? 34 : 38, scale = [74, 77, 79, 80, 81, 84, 86];
+  voice(mtof(root), t, 1.2, bar - 1.2, 1.6, .05, 'sine', 0, MU.side[1]);
+  voice(mtof(root + 7), t, 1.5, bar - 1.5, 1.6, .018, 'triangle', 0);
+  let a = mpick(scale);
+  for (let k = 0; k < 2; k++) {
+    if (Math.random() < .8) { const b = mpick(scale); voice(mtof(a), t + k*bar/2 + .2, .5, bar/2 - .9, .6, .02, 'sine', 0, null, mtof(b), [5.5, 22]); a = b; }
+  }
+  if (Math.random() < .5) { const f = mtof(mpick([62, 65, 69])); voice(f, t + bar*.5, .002, .05, 3, .025, 'sine', 0); voice(f*2.76, t + bar*.5, .002, .02, 1.2, .01, 'sine', 0); }
+  if (Math.random() < .35) hiss(t + Math.random()*bar*.5, 1.4, 'bandpass', 600, .012, MU.wet);
+}
+// Moonlight: calm and dreamy pads with gentle plucks.
+function moonBar(t, n){
+  const bar = MSTYLES.moonlight.bar, [bass, ch] = P_MOON[n % 4], penta = [72, 74, 76, 79, 81, 84, 86];
+  for (const m of ch) { voice(mtof(m), t, 2.2, bar - 2.2, 2.8, .02, 'sine', 0); voice(mtof(m), t, 2.6, bar - 2.6, 2.8, .01, 'triangle', 6); }
+  voice(mtof(bass + 12), t, 1.4, bar - 1.4, 2.4, .045, 'sine', 0);
+  for (let k = 0; k < 8; k++) if (Math.random() < .42) {
+    const pool = Math.random() < .6 ? ch.map(x => x + 12) : penta;
+    voice(mtof(mpick(pool)), t + k*bar/8 + Math.random()*.3, .012, .05, 1.5, .032, 'triangle', 0);
+  }
+}
+const MSTYLES = {
+  sneaky:{name:'Tiptoe', about:'Sneaky plucks', vol:2, bar:240/104, echo:[.2, .18], lp:4200, play:sneakyBar},
+  midnight:{name:'Midnight', about:'Music box', vol:1.1, bar:240/66, echo:[.46, .44], lp:2600, play:midnightBar},
+  spooky:{name:'Spooky', about:'Ghostly hums', vol:2, bar:240/54, echo:[.55, .5], lp:2000, play:spookyBar},
+  moonlight:{name:'Moonlight', about:'Calm and dreamy', vol:1, bar:8, echo:[.48, .42], lp:2200, play:moonBar}
+};
+const STYLE_IDS = ['auto', ...Object.keys(MSTYLES)];
+function setMusicStyle(id){
+  if (id !== 'auto' && !MSTYLES[id]) return;
+  const was = curStyle(); save.mstyle = id; save.mus = true; persist();
+  audioInit(); applyVolume(); syncSoundButtons();
+  if (!AU.ctx || !MU.bus) return;
+  if (id === 'auto') { MU.since = AU.ctx.currentTime; return; }
+  MU.cur = id;
+  if (id !== was) { newSide(); styleFx(.3); MU.next = AU.ctx.currentTime + .12; MU.bar = 0; }
+}
+function musicAutoStep(now){
+  if (save.mstyle !== 'auto' || now - MU.since < 50) return;
+  MU.since = now; MU.cur = MUSIC_AUTO[(MUSIC_AUTO.indexOf(MU.cur) + 1) % MUSIC_AUTO.length];
+  newSide(.5); styleFx(1); MU.next = Math.max(now + .15, Math.min(MU.next, now + .6)); MU.bar = 0; syncSoundButtons();
+}
+function musicSchedule(){
+  const c = AU.ctx; if (!c || c.state !== 'running' || !MU.bus || document.hidden) return;
+  const now = c.currentTime;
+  // heartbeat when a flashlight is close
+  const tz = save.mus ? MU.tension : 0;
+  MU.beat.gain.setTargetAtTime(tz > .2 ? .35 + .65*tz : 0, now, .4);
+  if (tz > .2) {
+    if (MU.hb < now) MU.hb = now + .05;
+    while (MU.hb < now + 1) { thump(MU.hb, 95, 48, .2, .5, MU.beat); thump(MU.hb + .22, 85, 45, .18, .3, MU.beat); MU.hb += 1.05 - .4*tz; }
+  }
+  if (!save.mus) return;
+  if (MU.next < now + .05) MU.next = now + .1;
+  musicAutoStep(now);
+  const st = MSTYLES[curStyle()] || MSTYLES.sneaky;
+  while (MU.next < now + 1.2) {
+    try { st.play(MU.next, MU.bar); } catch (e) {}
+    MU.next += st.bar; MU.bar++;
+  }
+}
+// How close the nearest flashlight is to you, from 0 (safe) to 1 (in the light).
+function tensionNow(){
+  if (!world || world.demo || !inNight() || me.role !== 'ex' || !me.ent || me.ent.out) return 0;
+  const e = me.ent; let t = 0;
+  for (const g of world.guards) {
+    if (g.off > 0) continue;
+    if (guardSees(g, e.x, e.y)) return 1;
+    const d = dist(g, e); if (d > g.range*1.6) continue;
+    const near = clamp(1 - (d - 50)/(g.range*1.5), 0, 1), diff = Math.abs(wrap(Math.atan2(e.y - g.y, e.x - g.x) - g.angle));
+    t = Math.max(t, near*(diff < g.cone + .7 ? 1 : .45));
+  }
+  return t;
+}
+
+/* ---------- controllers, like Noodle Bots ----------
+   Works with any controller the browser knows (Xbox, PlayStation, Switch and most others).
+   Button hints use a diamond of four dots that shows which face button to press, so they
+   make sense whatever letters or shapes the buttons have. */
+const PB = {S:0, E:1, W:2, N:3, LB:4, RB:5, LT:6, RT:7, BACK:8, START:9, UP:12, DOWN:13, LEFT:14, RIGHT:15};
+const GP = {prev:[], dir:'', dirAt:0, screen:null, focus:null, lastRect:null, hold:new Set(), connected:false, hintUntil:0, lastMode:'', hintKey:'', invShown:false};
+const padIn = {x:0, y:0, tip:false, aim:null, rot:0, aimAt:-1e9};
+const appEl = document.getElementById('app');
+function padIcon(k){
+  const Tx = (t, y) => `<text x="12" y="${y}" text-anchor="middle" font-size="8.5" font-weight="800" font-family="system-ui,sans-serif" fill="currentColor">${t}</text>`;
+  let inner = '';
+  if (k === 'N' || k === 'E' || k === 'S' || k === 'W') {
+    const pos = {N:[12, 5], E:[19, 12], S:[12, 19], W:[5, 12]};
+    for (const [n, [x, y]] of Object.entries(pos)) inner += n === k ? `<circle cx="${x}" cy="${y}" r="3.9" fill="currentColor"/>` : `<circle cx="${x}" cy="${y}" r="3.2" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/>`;
+  } else if (k === 'RT' || k === 'LT') inner = `<path d="M6 21.5V10a6 6 0 0 1 12 0v11.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>` + Tx(k[0], 18.5);
+  else if (k === 'RB' || k === 'LB') inner = `<rect x="2.5" y="7" width="19" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/>` + Tx(k[0], 15);
+  else if (k === 'START') inner = `<rect x="2.5" y="2.5" width="19" height="19" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/><path d="M8 8.5h8M8 12h8M8 15.5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`;
+  else if (k === 'BACK') inner = `<rect x="2.5" y="2.5" width="19" height="19" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/><rect x="6.5" y="6.5" width="7" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="10.5" y="10.5" width="7" height="7" rx="1.6" fill="currentColor"/>`;
+  else if (k === 'LSTICK' || k === 'RSTICK') inner = `<circle cx="12" cy="12" r="9.6" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".6"/><circle cx="12" cy="12" r="4.6" fill="currentColor"/>` + `<text x="12" y="14.6" text-anchor="middle" font-size="7" font-weight="800" font-family="system-ui,sans-serif" fill="#0b0f24">${k[0]}</text>`;
+  else if (k === 'DPAD') inner = `<path d="M9 2.5h6v6.5h6.5v6H15v6.5H9V15H2.5V9H9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 5.5l-1.6 2h3.2z" fill="currentColor"/>`;
+  return `<svg class="padico" viewBox="0 0 24 24" aria-hidden="true">${inner}</svg>`;
+}
+function padSetup(){
+  const rows = [[['LSTICK'], 'Sneak or walk (tilt a little to tiptoe)'], [['RSTICK'], 'Aim your flashlight (guard)'], [['LB', 'RB'], 'Turn your flashlight (guard)'],
+    [['START'], 'Pause'], [['BACK'], 'Join a friend\'s invite'], [['DPAD', 'S'], 'Move around menus and pick'], [['E'], 'Back']];
+  $('padMap').innerHTML = rows.map(([ks, t]) => `<li><span class="pk">${ks.map(padIcon).join('')}</span><span>${t}</span></li>`).join('');
+}
+function padGet(){
+  let pads = []; try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { return null; }
+  let best = null; for (const p of pads || []) if (p && p.connected && (!best || p.timestamp > best.timestamp)) best = p;
+  return best;
+}
+function padUse(){ if (!appEl.classList.contains('pad')) { appEl.classList.add('pad'); GP.hintUntil = performance.now() + 7000; GP.hintKey = ''; } game.lastInput = 'pad'; }
+function padOff(){ padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; if (!appEl.classList.contains('pad')) return; appEl.classList.remove('pad'); if (GP.focus) GP.focus.classList.remove('padfocus'); GP.focus = null; }
+const padScreen = () => Object.keys(panels).find(k => !panels[k].hidden) || null;
+const PAD_BACK = {intro:'btnIntroBack', pause:'btnResume', online:'btnOnlineBack'};
+function padTargets(root){
+  const els = [...root.querySelectorAll('button, input, summary')];
+  if (!$('invitePop').hidden) els.push(...$('invitePop').querySelectorAll('button'));
+  return els.filter(el => !el.disabled && el.getClientRects().length && !el.closest('[hidden]') && !(el.closest('details:not([open])') && el.tagName !== 'SUMMARY'));
+}
+function padFocus(el){
+  if (GP.focus && GP.focus !== el) GP.focus.classList.remove('padfocus');
+  GP.focus = el; if (!el) return;
+  el.classList.add('padfocus'); GP.lastRect = el.getBoundingClientRect();
+  try { el.scrollIntoView({block:'nearest', inline:'nearest'}); } catch (e) {}
+}
+function padPick(list){ return list.find(el => el.classList.contains('primary')) || list[0] || null; }
+function padMove(list, dir){
+  const cur = GP.focus; if (!cur) { padFocus(padPick(list)); return; }
+  if (cur.type === 'range' && (dir === 'left' || dir === 'right')) {
+    cur.value = String(clamp(+cur.value + (dir === 'right' ? 1 : -1)*(+cur.step || 1), +cur.min, +cur.max)); cur.dispatchEvent(new Event('input', {bubbles:true})); return;
+  }
+  const r0 = cur.getBoundingClientRect(), x0 = r0.left + r0.width/2, y0 = r0.top + r0.height/2;
+  let best = null, bs = 1e9;
+  for (const el of list) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect(), x = r.left + r.width/2, y = r.top + r.height/2, dx = x - x0, dy = y - y0;
+    const along = dir === 'right' ? dx : dir === 'left' ? -dx : dir === 'down' ? dy : -dy;
+    if (along <= 6) continue;
+    const side = dir === 'left' || dir === 'right' ? Math.abs(dy) : Math.abs(dx);
+    const overlap = dir === 'left' || dir === 'right' ? (r.bottom > r0.top + 4 && r.top < r0.bottom - 4) : (r.right > r0.left + 4 && r.left < r0.right - 4);
+    const sc = along + side*2.4 - (overlap ? 400 : 0);
+    if (sc < bs) { bs = sc; best = el; }
+  }
+  if (best) { padFocus(best); SFX.click(); }
+}
+function padPress(el){
+  if (!el) return;
+  if (el.tagName === 'INPUT') { if (el.type !== 'range') try { el.focus(); } catch (e) {} return; }
+  el.click(); SFX.click();
+}
+function padBackFor(scr){
+  if (scr === 'result') return game.kind === 'room' ? 'btnResPrimary' : 'btnResMenu';
+  return PAD_BACK[scr];
+}
+function padPoll(now){
+  if (!GP.connected) return;
+  const p = padGet(); if (!p) { padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; return; }
+  const std = p.mapping === 'standard';
+  const cur = p.buttons.map(x => !!x && (x.pressed || x.value > .5));
+  for (const i of [...GP.hold]) if (!cur[i]) GP.hold.delete(i);
+  const hit = i => cur[i] && !GP.prev[i] && !GP.hold.has(i);
+  const ax = p.axes || [], lx = ax[0] || 0, ly = ax[1] || 0, rx = std ? ax[2] || 0 : 0, ry = std ? ax[3] || 0 : 0;
+  const lm = Math.hypot(lx, ly), rm = Math.hypot(rx, ry);
+  if (cur.some(Boolean) || lm > .4 || rm > .4) padUse();
+  if (!appEl.classList.contains('pad')) { GP.prev = cur; return; }
+  const dx = (cur[PB.RIGHT] ? 1 : 0) - (cur[PB.LEFT] ? 1 : 0), dy = (cur[PB.DOWN] ? 1 : 0) - (cur[PB.UP] ? 1 : 0);
+  const scr = padScreen();
+  if (scr !== GP.screen) { GP.screen = scr; padFocus(null); GP.hintKey = ''; }
+  padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; padIn.tip = false;
+  if (scr) {
+    const sx = lm > .6 ? lx : 0, sy = lm > .6 ? ly : 0;
+    const dir = dx || dy ? (Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'))
+      : sx || sy ? (Math.abs(sx) > Math.abs(sy) ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'down' : 'up')) : '';
+    let dirHit = '';
+    if (dir !== GP.dir) { GP.dir = dir; GP.dirAt = now + 360; dirHit = dir; } else if (dir && now >= GP.dirAt) { GP.dirAt = now + 130; dirHit = dir; }
+    const list = padTargets(panels[scr]);
+    if (GP.focus && !list.includes(GP.focus)) {
+      const r0 = GP.lastRect; let best = null, bd = 1e9;
+      if (r0) for (const el of list) { const r = el.getBoundingClientRect(), d = Math.hypot(r.left - r0.left, r.top - r0.top); if (d < bd) { bd = d; best = el; } }
+      padFocus(best);
+    }
+    if (!GP.focus && list.length) padFocus(padPick(list));
+    if (dirHit) padMove(list, dirHit);
+    if (hit(PB.S)) { GP.hold.add(PB.S); padPress(GP.focus); }
+    if (hit(PB.E)) { const id = padBackFor(scr), b = id && $(id); if (b && !b.hidden && b.getClientRects().length) { GP.hold.add(PB.E); padPress(b); } }
+    if (hit(PB.START) && scr === 'pause') togglePause();
+    if (hit(PB.BACK) && !$('invitePop').hidden) $('btnInvJoin').click();
+  } else if (inNight()) {
+    GP.dir = '';
+    const dead = .22;
+    if (dx || dy) { const m = Math.hypot(dx, dy); padIn.x = dx/m; padIn.y = dy/m; padIn.tip = !!cur[PB.LT] || !!cur[PB.LB]; }
+    else if (lm > dead) { padIn.x = lx/lm; padIn.y = ly/lm; padIn.tip = lm < .72 || !!cur[PB.LT]; }
+    if (me.role === 'guard') {
+      padIn.tip = false;
+      if (rm > .35) { padIn.aim = Math.atan2(ry, rx); padIn.aimAt = now; }
+      else padIn.rot = (cur[PB.RB] || cur[PB.RT] ? 1 : 0) - (cur[PB.LB] || cur[PB.LT] ? 1 : 0);
+      if (padIn.rot) padIn.aimAt = now;
+    }
+    if (padIn.x || padIn.y) game.lastInput = 'pad';
+    if (hit(PB.START)) togglePause();
+    if (hit(PB.BACK) && !$('invitePop').hidden) $('btnInvJoin').click();
+  }
+  const m = game.mode;
+  if (m === 'play' && GP.lastMode !== 'play') GP.hintUntil = now + 7000;
+  GP.lastMode = m;
+  padHintUpdate(scr, now);
+  GP.prev = cur;
+}
+function padHintUpdate(scr, now){
+  const el = $('padHint'), ph = (ks, t) => `<span class="ph">${ks.map(padIcon).join('')}${t}</span>`;
+  let key = '', html = '';
+  if (!$('invitePop').hidden) { key = 'inv'; html = ph(['BACK'], 'Join the invite'); }
+  else if (scr) { const b = padBackFor(scr); key = 'menu' + (b ? 'b' : ''); html = ph(['DPAD'], 'Move') + ph(['S'], 'Select') + (b ? ph(['E'], 'Back') : ''); }
+  else if (game.mode === 'play' && now < GP.hintUntil) {
+    key = 'game' + me.role;
+    html = me.role === 'guard' ? ph(['LSTICK'], 'Walk') + ph(['RSTICK'], 'Aim') + ph(['START'], 'Pause')
+      : ph(['LSTICK'], 'Sneak') + `<span class="ph">Let go to freeze</span>` + ph(['START'], 'Pause');
+  }
+  if (key !== GP.hintKey) { GP.hintKey = key; el.innerHTML = html; el.classList.toggle('show', !!key); }
+}
+addEventListener('gamepadconnected', () => { GP.connected = true; padUse(); hint('Controller connected', 2000); });
+addEventListener('gamepaddisconnected', () => { if (!padGet()) { GP.connected = false; padOff(); } });
+// Touching the screen, the mouse or the keyboard switches the hints back.
+addEventListener('pointerdown', e => { if (e.pointerType) padOff(); }, true);
+addEventListener('keydown', () => padOff(), true);
+
+
 /* ---------- night loop ---------- */
 function updateNight(dt){
   const auth = game.kind === 'solo' || NET.isHost;
@@ -1530,8 +1927,8 @@ function startSolo(){
   Object.assign(game, {mode:'play', clock:0, catches:0, needRelease:true, caughtBy:null, flash:0, ep:0});
   particles.length = 0; stick.active = aimStick.active = false;
   setHudNight(); $('hud').hidden = false; showPanel(null); updateHUD(true); audioInit(); frTickSoon();
-  if (guard) hint(touchy() ? 'You only see what your flashlight shows. Left thumb walks, right thumb aims.' : 'You only see what your flashlight shows. WASD walks, the mouse aims.', 3800);
-  else if (game.night === 0) hint(touchy() ? 'Drag anywhere to sneak. Let go to freeze!' : 'Move with WASD or the arrow keys. Let go to freeze!', 3600);
+  if (guard) hint(say({touch:'You only see what your flashlight shows. Left thumb walks, right thumb aims.', keys:'You only see what your flashlight shows. WASD walks, the mouse aims.', pad:'You only see what your flashlight shows. Left stick walks, right stick aims.'}), 3800);
+  else if (game.night === 0) hint(say({touch:'Drag anywhere to sneak. Let go to freeze!', keys:'Move with WASD or the arrow keys. Let go to freeze!', pad:'Sneak with the left stick. Let go to freeze!'}), 3600);
 }
 function setHudNight(){ $('hudKicker').textContent = `Night ${ROMAN[game.night]}${me.role === 'guard' ? ' · Guard' : ''}`; $('hudName').textContent = LEVELS[game.night].name; }
 function togglePause(){
@@ -1857,8 +2254,25 @@ function drawPreviews(){
 }
 function syncSoundButtons(){
   for (const id of ['btnSoundMenu', 'btnSoundPause']) { const b = $(id); b.textContent = save.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(save.sound)); }
+  for (const id of ['btnMusicMenu', 'btnMusicPause']) { const b = $(id); b.textContent = save.mus ? 'Music on' : 'Music off'; b.setAttribute('aria-pressed', String(save.mus)); }
+  for (const b of $('styleRow').children) b.setAttribute('aria-pressed', String(b.dataset.id === save.mstyle));
+  const v = Math.round(save.vol*100); if (+$('volIn').value !== v) $('volIn').value = String(v); $('volOut').textContent = v;
+  const st = MSTYLES[curStyle()];
+  $('musicNow').textContent = !save.mus ? 'Music off' : save.mstyle === 'auto' ? `Auto · ${st.name}` : st.name;
+  const sb = $('btnSilent'); sb.textContent = `Play sound when my phone is on silent: ${save.silentOk ? 'on' : 'off'}`; sb.setAttribute('aria-pressed', String(save.silentOk));
 }
-function toggleSound(){ save.sound = !save.sound; persist(); if (save.sound) audioInit(); syncSoundButtons(); }
+function buildStyleRow(){
+  const row = $('styleRow'); row.textContent = '';
+  for (const id of STYLE_IDS) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.id = id;
+    const nm = document.createElement('span'); nm.textContent = id === 'auto' ? 'Auto' : MSTYLES[id].name;
+    const ab = document.createElement('small'); ab.textContent = id === 'auto' ? 'Changes every song' : MSTYLES[id].about;
+    b.append(nm, ab); b.addEventListener('click', () => setMusicStyle(id)); row.append(b);
+  }
+  $('btnSilent').hidden = !(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+}
+function toggleSound(){ save.sound = !save.sound; persist(); audioInit(); applyVolume(); syncSoundButtons(); }
+function toggleMusic(){ save.mus = !save.mus; persist(); audioInit(); applyVolume(); syncSoundButtons(); }
 function showPanel(name){
   for (const k in panels) panels[k].hidden = k !== name;
   if (name) toast.classList.remove('show');
@@ -1886,7 +2300,7 @@ function openIntro(i){
   $('introGems').textContent = gems;
   $('introWhoLbl').textContent = guard ? 'Exhibits' : 'Guards';
   $('introGuards').textContent = guard ? SOLO_BOTS[i] : L.guards.length;
-  $('introTip').innerHTML = guard ? '<b>Phone:</b> left thumb walks, right thumb aims. <b>Computer:</b> WASD walks, the mouse aims. Exhibits must carry each gem back to their pedestals. Catch one moving in your light and its gem goes back. Hold them off until 6:00 AM.' : L.tip;
+  $('introTip').innerHTML = guard ? '<b>Phone:</b> left thumb walks, right thumb aims. <b>Computer:</b> WASD walks, the mouse aims. <b>Controller:</b> left stick walks, right stick aims. Exhibits must carry each gem back to their pedestals. Catch one moving in your light and its gem goes back. Hold them off until 6:00 AM.' : L.tip;
   $('hud').hidden = true;
   showPanel('intro'); $('btnLightsOut').focus({preventScroll:true});
 }
@@ -2363,7 +2777,7 @@ function startRoomNight(H){
   setHudNight(); $('hud').hidden = false; showPanel(null); hideInvite(); updateHUD(true); audioInit(); frTickSoon();
   syncNetEntities();
   if (!me.role) hint("A night is already going. You can watch, and you'll join the next one.", 3400);
-  else if (me.role === 'guard') hint(touchy() ? 'You are a night guard. Left thumb walks, right thumb aims.' : 'You are a night guard. WASD walks, the mouse aims.', 3400);
+  else if (me.role === 'guard') hint(say({touch:'You are a night guard. Left thumb walks, right thumb aims.', keys:'You are a night guard. WASD walks, the mouse aims.', pad:'You are a night guard. Left stick walks, right stick aims.'}), 3400);
   else hint('Find every gem with your team. Freeze when a light comes your way!', 3200);
 }
 function hostStartNight(){
@@ -2721,6 +3135,12 @@ $('btnToMenu').addEventListener('click', () => { if (game.kind === 'room') leave
 $('btnResAgain').addEventListener('click', startSolo);
 $('btnSoundMenu').addEventListener('click', toggleSound);
 $('btnSoundPause').addEventListener('click', toggleSound);
+$('btnMusicMenu').addEventListener('click', toggleMusic);
+$('btnMusicPause').addEventListener('click', toggleMusic);
+$('volIn').addEventListener('input', () => { save.vol = clamp(+$('volIn').value/100, 0, 1); persist(); audioInit(); applyVolume(); syncSoundButtons(); });
+$('btnSilent').addEventListener('click', () => { save.silentOk = !save.silentOk; persist(); applyAudioSession(true); if (!save.silentOk && AU.tag) { try { AU.tag.pause(); AU.tag.removeAttribute('src'); } catch (e) {} AU.tag = null; } AU.unlocked = false; audioInit(); syncSoundButtons(); });
+// Browsers only start sound after you touch, click or press something.
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => audioInit(), {capture:true, passive:true});
 $('nameIn').addEventListener('input', () => { const v = $('nameIn').value; save.name = v.trim() ? cleanName(v) : ''; persist(); frTickSoon(); });
 $('btnCreate').addEventListener('click', () => { audioInit(); joinRoom(newCode(), true); });
 $('btnJoin').addEventListener('click', () => { audioInit(); joinRoom($('codeIn').value, false); });
@@ -2754,6 +3174,8 @@ function frame(now){
   game.t += dt;
   if (game.flash > 0) game.flash = Math.max(0, game.flash - dt*1.2);
   try {
+    padPoll(now);
+    MU.tension += (tensionNow() - MU.tension)*Math.min(1, dt*3);
     if (world) {
       if (world.demo) { for (const g of world.guards) if (g.ctrl === 'ai') updateGuard(g, dt, false); }
       else if (game.mode === 'play') { updateNight(dt); updateHUD(); }
@@ -2778,6 +3200,7 @@ function boot(data){
   if (data && typeof data.sel === 'number') game.sel = data.sel;
   try { window.claude?.hot?.snapshot?.(() => ({save, sel:game.sel})); } catch (e) {}
   if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage); else addEventListener('resize', resize);
+  buildStyleRow(); padSetup(); syncSoundButtons();
   resize(); openMenu(); initOnline();
   if (!IN_CLAUDE && save.fid) frStart();
   if (!IN_CLAUDE) {
@@ -2786,6 +3209,7 @@ function boot(data){
     else if (fm) { openOnline(); $('fCodeIn').value = fidShow(fm[1].toUpperCase()); frMsg('Tap Add to send a friend request.'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
   window.__mad = {game, LEVELS, NET, me, get world(){ return world; }, startSolo, openIntro, joinRoom, keys, guardSees, save:() => save, hostStartNight, FR};
+  window.__madAudio = {AU, MU, setMusicStyle, toggleMusic};
   requestAnimationFrame(t => { last = t; frame(t); });
 }
 if (window.claude?.hot?.ready) window.claude.hot.ready(boot);
