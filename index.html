@@ -178,6 +178,15 @@ input.code-in{text-transform:uppercase;letter-spacing:.14em;font-weight:600}
 .lose-title{color:var(--velvet)}
 
 button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outline-offset:2px}
+/* Dress up */
+.dress-stage{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 8px 8px;border-radius:6px;background:radial-gradient(circle at 50% 40%,var(--gallery-2),var(--night) 75%);border:1px solid color-mix(in srgb,var(--marble) 12%,transparent)}
+.dress-stage canvas{width:150px;height:150px}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:6px}
+.pick{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px;border-radius:6px;border:1px solid color-mix(in srgb,var(--marble) 14%,transparent);background:var(--night);color:var(--marble);font:500 12px var(--ui);cursor:pointer;touch-action:manipulation;min-width:0;line-height:1.2;text-align:center}
+.pick canvas{width:40px;height:40px}
+.pick[aria-pressed="true"]{border-color:var(--brass);background:var(--gallery-2);box-shadow:inset 0 0 0 1px var(--brass)}
+.btn.dress{display:flex;align-items:center;justify-content:center;gap:10px}
+.btn.dress canvas{width:34px;height:34px;margin:-6px 0}
 /* Sound settings */
 .sound{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .sound .row{gap:8px}
@@ -254,6 +263,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
           <h2 class="section-label">Choose your exhibit</h2>
           <div class="exhibits" id="exhibitList"></div>
         </div>
+        <button class="btn ghost dress" id="btnCloset"><canvas id="closetIcon" width="68" height="68" aria-hidden="true"></canvas><span id="closetLbl">Hats &amp; jewelry</span></button>
         <h2 class="section-label">Pick a night</h2>
         <div class="nights" id="nightList"></div>
         <details class="how" id="howTo">
@@ -303,6 +313,38 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <button class="btn ghost" id="btnSilent" aria-pressed="false" hidden>Play sound when my phone is on silent: off</button>
           </div>
         </details>
+        <details class="how" id="saveBox">
+          <summary>Save file</summary>
+          <div class="sound">
+            <p class="muted small-text">Download your stars, outfits, settings, name and friends as a .zip file. Load it on another phone or computer to pick up where you left off.</p>
+            <div class="row">
+              <button class="btn ghost grow" id="btnSaveZip">Download save (.zip)</button>
+              <button class="btn ghost grow" id="btnLoadZip">Load save</button>
+            </div>
+            <input type="file" id="loadIn" accept=".zip,application/zip" hidden>
+            <p class="status" id="saveMsg" hidden></p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel" id="closet" hidden>
+      <div class="card">
+        <p class="eyebrow">Dress up</p>
+        <h2 class="placard-title">Hats &amp; jewelry</h2>
+        <div class="seg" role="group" aria-label="Who to dress up">
+          <button type="button" id="dressEx" aria-pressed="true">Your exhibit</button>
+          <button type="button" id="dressGuard" aria-pressed="false">Your night guard</button>
+        </div>
+        <div class="dress-stage"><canvas id="dressPreview" width="300" height="300" aria-label="Preview of your outfit"></canvas><p class="muted small-text" id="dressName">Marble Statue</p></div>
+        <h3 class="section-label">Hat</h3>
+        <div class="picks" id="hatList"></div>
+        <h3 class="section-label">Jewelry</h3>
+        <div class="picks" id="jewList"></div>
+        <div class="row">
+          <button class="btn primary grow" id="btnDressDone">Done</button>
+          <button class="btn ghost" id="btnDressRandom">Surprise me</button>
+        </div>
       </div>
     </section>
 
@@ -584,7 +626,7 @@ function cleanName(v, max = 14){
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
   return s || 'Player';
 }
-function saveDefaults(){ return {best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
+function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
 function loadSave(seed){
   const b = saveDefaults();
@@ -594,6 +636,7 @@ function loadSave(seed){
     const stars = a => b.best.map((v, i) => Math.max(0, Math.min(3, (Array.isArray(a) ? a[i] : 0) | 0)));
     b.best = stars(s.best); b.bestG = stars(s.bestG);
     if (EX_IDS.includes(s.exhibit)) b.exhibit = s.exhibit;
+    for (const k of ['lookEx', 'lookG']) if (s[k] && typeof s[k] === 'object') b[k] = cleanLook(s[k]);
     if (typeof s.sound === 'boolean') b.sound = s.sound;
     if (typeof s.mus === 'boolean') b.mus = s.mus;
     if (typeof s.voices === 'boolean') b.voices = s.voices;
@@ -633,7 +676,7 @@ function importNoodleBots(){
 const $ = id => document.getElementById(id);
 const stage = $('stage'), cvs = $('game'), ctx = cvs.getContext('2d');
 const dark = document.createElement('canvas'), dctx = dark.getContext('2d');
-const panels = {menu:$('menu'), intro:$('intro'), pause:$('pause'), result:$('result'), online:$('online'), room:$('roomPanel')};
+const panels = {menu:$('menu'), intro:$('intro'), pause:$('pause'), result:$('result'), online:$('online'), room:$('roomPanel'), closet:$('closet')};
 let dpr = 1, view = {s:1, ox:0, oy:0}, vInset = {top:0, bot:0};
 
 /* ---------- helpers ---------- */
@@ -826,18 +869,21 @@ function makeAIGuard(slot){
     state:'walk', timer:0, scanBase:a0, scanT:0, scanDur:1, sweep:1.05, cool:0,
     bubble:null, bubbleT:0, phase:0, seed:slot*2.3, resume:null, look:null, poly:[], off:0, heat:0, moving:true, t:0};
 }
-function makeHumanGuard(slot, ctrl, id, name){
+const cleanLook = l => ({hat:HAT_IDS.includes(l && l.hat) ? l.hat : 'none', jew:JEWEL_IDS.includes(l && l.jew) ? l.jew : 'none'});
+// Bot exhibits dress up too; each one's outfit comes from its number, so every player sees the same.
+function botLook(k){ const hats = ['party', 'none', 'crown', 'cowboy', 'bow', 'wizard', 'beanie', 'top', 'propeller', 'pirate']; return {hat:hats[k % hats.length], jew:JEWEL_IDS[(k*3 + 1) % JEWEL_IDS.length]}; }
+function makeHumanGuard(slot, ctrl, id, name, look){
   const {d, path, start} = guardPath(slot), p = path[start];
   const cx = world.W*T/2, cy = world.H*T/2, a0 = Math.atan2(cy - p.y, cx - p.x);
   return {kind:'guard', ctrl, slot, id, name, range:Math.max(200, d.range), cone:.5,
-    x:p.x, y:p.y, angle:a0, target:a0, heading:a0, bubble:null, bubbleT:0, phase:0, poly:[], off:0, heat:0, moving:false, t:0};
+    x:p.x, y:p.y, angle:a0, target:a0, heading:a0, bubble:null, bubbleT:0, phase:0, poly:[], off:0, heat:0, moving:false, t:0, ...cleanLook(look)};
 }
 function makeExhibit(o){
   const p = world.peds[o.ped] || world.peds[0], pz = randomPose(o.kind, -1);
   return {kind:o.kind, ctrl:o.ctrl, id:o.id, name:o.name || '', ped:o.ped, x:p.x, y:p.y,
     moving:false, wob:false, settle:0, running:false, phase:0, face:1, pz, pose:posesFor(o.kind)[pz],
     invuln:0, rings:[], ringT:0, c:0, out:false, cz:0, cb:-1, gg:new Set(), t:0, gone:false,
-    cg:-1, dg:new Set(), path:null, pathT:0, target:-1, react:null, hold:o.hold != null ? o.hold : 1.2 + Math.random(), pauseT:3 + Math.random()*3, stuckT:0, lastX:p.x, lastY:p.y};
+    ...cleanLook(o.look), cg:-1, dg:new Set(), path:null, pathT:0, target:-1, react:null, hold:o.hold != null ? o.hold : 1.2 + Math.random(), pauseT:3 + Math.random()*3, stuckT:0, lastX:p.x, lastY:p.y};
 }
 function randomPose(kind, prev){
   const n = posesFor(kind).length; let i;
@@ -1417,6 +1463,115 @@ const FIG = {
   mummy:{body:'#ddd0aa', out:'#6c5d3e', trim:'#64e3d1'},
   guard:{body:'#33437e', out:'#0d1127', trim:'#d8ad55', skin:'#e3b48d', legs:'#1d264f'}
 };
+/* ---------- hats & jewelry (drawn in figure units; a head is about 12 wide) ---------- */
+const HATS = [
+  {id:'none', name:'No hat'}, {id:'top', name:'Top hat'}, {id:'crown', name:'Crown'}, {id:'party', name:'Party hat'},
+  {id:'cowboy', name:'Cowboy hat'}, {id:'beanie', name:'Beanie'}, {id:'wizard', name:'Wizard hat'},
+  {id:'propeller', name:'Propeller cap'}, {id:'bow', name:'Big bow'}, {id:'pirate', name:'Pirate hat'}
+];
+const JEWELS = [
+  {id:'none', name:'None'}, {id:'chain', name:'Gold chain'}, {id:'pearls', name:'Pearls'}, {id:'ruby', name:'Ruby pendant'},
+  {id:'medal', name:'Gold medal'}, {id:'hoops', name:'Hoop earrings'}, {id:'bracelets', name:'Bracelets'}, {id:'bling', name:'Diamond bling'}
+];
+const HAT_IDS = HATS.map(h => h.id), JEWEL_IDS = JEWELS.map(j => j.id);
+const GOLD = '#e8bf4f', GOLD_D = '#8a6720', INK = '#141a3c';
+// (x, y) is the top middle of the head.
+function drawHat(c, id, x, y, t){
+  if (!id || id === 'none') return;
+  c.save(); c.translate(x, y); c.lineJoin = 'round'; c.lineCap = 'round'; c.lineWidth = 1;
+  const fs = (f, st) => { c.fillStyle = f; c.strokeStyle = st || INK; c.fill(); c.stroke(); };
+  if (id === 'top') {
+    c.beginPath(); c.ellipse(0, .4, 8.5, 1.8, 0, 0, 7); fs('#22222e');
+    rr(c, -5, -10.5, 10, 11, 1.2); fs('#22222e');
+    c.fillStyle = '#d4475f'; c.fillRect(-5, -3.2, 10, 2.2);
+  } else if (id === 'crown') {
+    c.beginPath(); c.moveTo(-6, 1); c.lineTo(-6.5, -5.5); c.lineTo(-3.2, -2.5); c.lineTo(0, -7.5); c.lineTo(3.2, -2.5); c.lineTo(6.5, -5.5); c.lineTo(6, 1); c.closePath(); fs(GOLD, GOLD_D);
+    c.fillStyle = '#d4475f'; c.beginPath(); c.arc(0, -1.5, 1.3, 0, 7); c.fill();
+    c.fillStyle = '#64e3d1'; c.beginPath(); c.arc(-3.8, -.8, .9, 0, 7); c.arc(3.8, -.8, .9, 0, 7); c.fill();
+    c.fillStyle = '#fff6d0'; for (const [px, py] of [[-6.5, -5.5], [0, -7.5], [6.5, -5.5]]) { c.beginPath(); c.arc(px, py, .9, 0, 7); c.fill(); }
+  } else if (id === 'party') {
+    c.beginPath(); c.moveTo(-5.5, 1); c.lineTo(0, -12); c.lineTo(5.5, 1); c.closePath(); fs('#64e3d1');
+    c.save(); c.clip(); c.strokeStyle = '#ff7fab'; c.lineWidth = 1.8;
+    for (let k = -2; k <= 3; k++) { c.beginPath(); c.moveTo(-7, k*3.4); c.lineTo(7, k*3.4 - 4); c.stroke(); } c.restore();
+    c.beginPath(); c.moveTo(-5.5, 1); c.lineTo(0, -12); c.lineTo(5.5, 1); c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
+    c.beginPath(); c.arc(0, -12.5, 2, 0, 7); fs('#ffd97e');
+  } else if (id === 'cowboy') {
+    c.beginPath(); c.moveTo(-11, -1.5); c.quadraticCurveTo(-9, 2.2, 0, 2); c.quadraticCurveTo(9, 2.2, 11, -1.5); c.quadraticCurveTo(6, .4, 0, .3); c.quadraticCurveTo(-6, .4, -11, -1.5); c.closePath(); fs('#9a6a3a');
+    c.beginPath(); c.moveTo(-5.5, .6); c.quadraticCurveTo(-6, -8, -2, -8.5); c.quadraticCurveTo(0, -6.5, 2, -8.5); c.quadraticCurveTo(6, -8, 5.5, .6); c.closePath(); fs('#b07a44');
+    c.fillStyle = '#5a3a1a'; c.fillRect(-5.6, -2.2, 11.2, 1.8);
+  } else if (id === 'beanie') {
+    c.beginPath(); c.arc(0, .5, 6.6, Math.PI, 0); c.closePath(); fs('#d4475f');
+    rr(c, -7, -1, 14, 3, 1.4); fs('#a8344a');
+    c.strokeStyle = 'rgba(20,26,60,.35)'; c.lineWidth = .7; c.beginPath(); for (const px of [-3.5, 0, 3.5]) { c.moveTo(px, -1); c.lineTo(px*.7, -5.2); } c.stroke();
+    c.beginPath(); c.arc(0, -6.8, 2.2, 0, 7); fs('#f3efe4');
+  } else if (id === 'wizard') {
+    c.beginPath(); c.ellipse(0, .4, 9, 2, 0, 0, 7); fs('#5b3fa8');
+    c.beginPath(); c.moveTo(-5.5, 0); c.quadraticCurveTo(-1, -8, 1, -14); c.quadraticCurveTo(4, -15, 6, -12.5); c.quadraticCurveTo(3, -11, 3, -8); c.lineTo(5.5, 0); c.closePath(); fs('#6d4fc4');
+    c.fillStyle = '#ffd97e';
+    const star = (sx, sy, r) => { c.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI/2 + k*Math.PI/5, rr2 = k % 2 ? r*.45 : r; c.lineTo(sx + Math.cos(a)*rr2, sy + Math.sin(a)*rr2); } c.closePath(); c.fill(); };
+    star(-1.2, -4, 1.7); star(2.2, -8.5, 1.2);
+  } else if (id === 'propeller') {
+    c.beginPath(); c.arc(0, .5, 6.4, Math.PI, 0); c.closePath(); fs('#3a6fd8');
+    c.save(); c.clip(); c.fillStyle = '#ffd03d'; c.fillRect(-7, -7, 4.6, 8); c.fillStyle = '#d4475f'; c.fillRect(2.4, -7, 4.6, 8); c.restore();
+    c.beginPath(); c.arc(0, .5, 6.4, Math.PI, 0); c.closePath(); c.strokeStyle = INK; c.stroke();
+    c.beginPath(); c.ellipse(4.5, .9, 4.2, 1.2, 0, 0, 7); fs('#2a55b0');
+    c.fillStyle = INK; c.fillRect(-.5, -8.8, 1, 3);
+    const w = Math.cos((t || 0)*18)*6.5; c.beginPath(); c.ellipse(0, -9, Math.abs(w) + .6, 1, 0, 0, 7); fs('#64e3d1');
+  } else if (id === 'bow') {
+    c.beginPath(); c.moveTo(0, -2.5); c.quadraticCurveTo(-7, -8, -7.5, -2); c.quadraticCurveTo(-6, 2.5, 0, -2.5); fs('#ff7fab');
+    c.beginPath(); c.moveTo(0, -2.5); c.quadraticCurveTo(7, -8, 7.5, -2); c.quadraticCurveTo(6, 2.5, 0, -2.5); fs('#ff7fab');
+    c.beginPath(); c.arc(0, -2.5, 1.8, 0, 7); fs('#e0558f');
+  } else if (id === 'pirate') {
+    c.beginPath(); c.moveTo(-9.5, .8); c.quadraticCurveTo(-7, -9, 0, -8.5); c.quadraticCurveTo(7, -9, 9.5, .8); c.quadraticCurveTo(0, -2.5, -9.5, .8); c.closePath(); fs('#24242e');
+    c.strokeStyle = GOLD; c.lineWidth = .9; c.beginPath(); c.moveTo(-8.6, -.2); c.quadraticCurveTo(0, -3.4, 8.6, -.2); c.stroke();
+    c.fillStyle = '#f3efe4'; c.beginPath(); c.arc(0, -5, 1.7, 0, 7); c.fill();
+    c.strokeStyle = '#f3efe4'; c.lineWidth = .8; c.beginPath(); c.moveTo(-2.2, -2.2); c.lineTo(2.2, -3.4); c.moveTo(2.2, -2.2); c.lineTo(-2.2, -3.4); c.stroke();
+  }
+  c.restore();
+}
+// necklaces sit on the chest; (x, y) is the middle of the neck
+function drawNeck(c, id, x, y, w){
+  if (!['chain', 'pearls', 'ruby', 'medal', 'bling'].includes(id)) return;
+  w = w || 4.6;
+  c.save(); c.translate(x, y); c.lineCap = 'round';
+  const curve = (dip) => { c.beginPath(); c.moveTo(-w, 0); c.quadraticCurveTo(0, dip*2, w, 0); };
+  if (id === 'chain' || id === 'bling') {
+    curve(5); c.strokeStyle = GOLD_D; c.lineWidth = 1.9; c.stroke(); c.strokeStyle = GOLD; c.lineWidth = 1.1; c.setLineDash([1.1, .7]); c.stroke(); c.setLineDash([]);
+    if (id === 'bling') {
+      c.fillStyle = '#eafcff'; c.strokeStyle = '#7fd8ff'; c.lineWidth = .6;
+      c.beginPath(); c.moveTo(0, 3.6); c.lineTo(2.6, 6); c.lineTo(0, 9.2); c.lineTo(-2.6, 6); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(-.8, 5.4, .6, 0, 7); c.fill();
+    } else { c.fillStyle = GOLD; c.strokeStyle = GOLD_D; c.lineWidth = .6; c.beginPath(); c.arc(0, 5.3, 1.6, 0, 7); c.fill(); c.stroke(); c.fillStyle = GOLD_D; c.font = '700 2.2px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('$', 0, 5.4); }
+  } else if (id === 'pearls') {
+    c.fillStyle = '#fbf8f0'; c.strokeStyle = '#a7a2b8'; c.lineWidth = .4;
+    for (let k = 0; k <= 8; k++) { const u = k/8, px = -w + 2*w*u, py = 4*u*(1 - u)*5*2*.5; c.beginPath(); c.arc(px, py, .95, 0, 7); c.fill(); c.stroke(); }
+  } else if (id === 'ruby') {
+    curve(4); c.strokeStyle = GOLD; c.lineWidth = .7; c.stroke();
+    c.fillStyle = '#e0344f'; c.strokeStyle = GOLD_D; c.lineWidth = .6;
+    c.beginPath(); c.moveTo(0, 3.2); c.lineTo(2.2, 5.3); c.lineTo(0, 8.2); c.lineTo(-2.2, 5.3); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(-.6, 4.9, .5, 0, 7); c.fill();
+  } else if (id === 'medal') {
+    c.strokeStyle = '#3a6fd8'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-w + .6, -.2); c.lineTo(0, 5); c.lineTo(w - .6, -.2); c.stroke();
+    c.fillStyle = GOLD; c.strokeStyle = GOLD_D; c.lineWidth = .6; c.beginPath(); c.arc(0, 7, 2.6, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = '#fff6d0'; c.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI/2 + k*Math.PI/5, r = k % 2 ? .7 : 1.6; c.lineTo(Math.cos(a)*r, 7 + Math.sin(a)*r); } c.closePath(); c.fill();
+  }
+  c.restore();
+}
+function drawHoops(c, id, xl, xr, y){
+  if (id !== 'hoops' && id !== 'bling') return;
+  c.save(); c.lineWidth = id === 'bling' ? .9 : 1.1;
+  for (const x of [xl, xr]) {
+    if (id === 'bling') { c.fillStyle = '#eafcff'; c.strokeStyle = '#7fd8ff'; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 1.2, y + 1.5); c.lineTo(x, y + 3); c.lineTo(x - 1.2, y + 1.5); c.closePath(); c.fill(); c.stroke(); }
+    else { c.strokeStyle = GOLD; c.beginPath(); c.arc(x, y + 1.8, 1.8, 0, 7); c.stroke(); }
+  }
+  c.restore();
+}
+function drawCuff(c, id, x, y){
+  if (id !== 'bracelets') return;
+  c.save(); c.strokeStyle = GOLD; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y, 2.9, 0, 7); c.stroke();
+  c.fillStyle = '#64e3d1'; c.beginPath(); c.arc(x, y - 2.9, .7, 0, 7); c.fill(); c.restore();
+}
+
 function seg(c, x1, y1, x2, y2, w, col, out){
   c.lineCap = 'round';
   c.strokeStyle = out; c.lineWidth = w + 2.6; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
@@ -1445,6 +1600,7 @@ function drawHumanoid(c, a){
   if (a.kind === 'knight') { c.strokeStyle = F.out; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -24); c.lineTo(0, -15); c.stroke(); c.fillStyle = F.out; c.fillRect(-6.5, -14.8, 13, 2); }
   if (a.kind === 'mummy') { c.strokeStyle = '#ad9f78'; c.lineWidth = 1; c.beginPath(); for (const yy of [-23, -19.5, -16]) { c.moveTo(-6, yy); c.lineTo(6, yy + 2.6); } c.stroke(); }
   if (isG) { c.fillStyle = F.trim; c.beginPath(); c.arc(-3, -21, 1.6, 0, 7); c.arc(1.5, -18, .9, 0, 7); c.arc(1.5, -15, .9, 0, 7); c.fill(); c.fillStyle = '#141a3c'; c.fillRect(-6.5, -13.5, 13, 2); }
+  drawNeck(c, a.jew, 0, -24.4);
   const L = 10.5, sy = -22;
   const lx = -6 - Math.sin(la)*L, ly = sy + Math.cos(la)*L, rx = 6 + Math.sin(ra)*L, ry = sy + Math.cos(ra)*L;
   seg(c, -6, sy, lx, ly, 3.2, F.body, F.out); seg(c, 6, sy, rx, ry, 3.2, F.body, F.out);
@@ -1452,6 +1608,7 @@ function drawHumanoid(c, a){
   c.beginPath(); c.arc(lx, ly, 2.3, 0, 7); c.fill(); c.stroke();
   c.beginPath(); c.arc(rx, ry, 2.3, 0, 7); c.fill(); c.stroke();
   if (a.kind === 'mummy') { c.strokeStyle = F.body; c.lineWidth = 1.6; c.beginPath(); c.moveTo(lx, ly); c.quadraticCurveTo(lx - 3, ly + 4, lx - 1, ly + 7); c.stroke(); }
+  drawCuff(c, a.jew, lx, ly); drawCuff(c, a.jew, rx, ry);
   if (isG) {
     c.save(); c.translate(rx, ry); c.rotate(a.angle - lean);
     c.fillStyle = '#20273f'; rr(c, -2, -2.2, 9, 4.4, 1.2); c.fill();
@@ -1465,7 +1622,7 @@ function drawHumanoid(c, a){
   } else if (a.kind === 'knight') {
     c.fillStyle = F.body; c.strokeStyle = F.out; c.lineWidth = 1.3; rr(c, -6.5, hy - 7, 13, 13, 5); c.fill(); c.stroke();
     c.fillStyle = F.out; c.fillRect(-4.5, hy - 1.8, 9, 2.2);
-    c.strokeStyle = F.trim; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, hy - 7); c.quadraticCurveTo(4, hy - 15, 10, hy - 10); c.stroke();
+    if (!a.hat || a.hat === 'none') { c.strokeStyle = F.trim; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, hy - 7); c.quadraticCurveTo(4, hy - 15, 10, hy - 10); c.stroke(); }
   } else if (a.kind === 'mummy') {
     c.fillStyle = F.body; c.strokeStyle = F.out; c.lineWidth = 1.3; c.beginPath(); c.arc(0, hy, 6, 0, 7); c.fill(); c.stroke();
     c.fillStyle = F.out; rr(c, -5.5, hy - 2.2, 11, 3.6, 1.5); c.fill();
@@ -1473,12 +1630,17 @@ function drawHumanoid(c, a){
     c.strokeStyle = '#ad9f78'; c.lineWidth = 1; c.beginPath(); c.moveTo(-5, hy - 4); c.lineTo(5, hy - 5.5); c.moveTo(-5, hy + 3); c.lineTo(5, hy + 2); c.stroke();
   } else {
     c.fillStyle = F.skin; c.strokeStyle = F.out; c.lineWidth = 1.3; c.beginPath(); c.arc(0, hy, 6, 0, 7); c.fill(); c.stroke();
-    c.fillStyle = '#1a2148'; rr(c, -6.8, hy - 7.5, 13.6, 5.5, 2.5); c.fill(); c.stroke();
-    c.fillStyle = '#141a3c'; c.fillRect(-7.5, hy - 2.6, 15, 1.6);
-    c.fillStyle = F.trim; c.beginPath(); c.arc(0, hy - 5, 1.3, 0, 7); c.fill();
+    if (!a.hat || a.hat === 'none') {
+      c.fillStyle = '#1a2148'; rr(c, -6.8, hy - 7.5, 13.6, 5.5, 2.5); c.fill(); c.stroke();
+      c.fillStyle = '#141a3c'; c.fillRect(-7.5, hy - 2.6, 15, 1.6);
+      c.fillStyle = F.trim; c.beginPath(); c.arc(0, hy - 5, 1.3, 0, 7); c.fill();
+    } else { c.fillStyle = '#4a3324'; c.beginPath(); c.arc(0, hy - 1.5, 6, Math.PI*1.05, -Math.PI*.05); c.fill(); }
     c.fillStyle = F.out; c.beginPath(); c.arc(-2.2, hy + .6, .9, 0, 7); c.arc(2.2, hy + .6, .9, 0, 7); c.fill();
     c.fillStyle = '#6b4a33'; rr(c, -3, hy + 2.6, 6, 1.6, .8); c.fill();
   }
+  drawHoops(c, a.jew, -6.2, 6.2, hy + 1);
+  const top = a.kind === 'statue' ? hy - 6.8 : a.kind === 'knight' ? hy - 6.6 : a.kind === 'guard' ? hy - 5.4 : hy - 5.6;
+  drawHat(c, a.hat, 0, top, a.t);
 }
 function drawDino(c, a){
   const B = '#efe6cf', O = '#6b624d', walking = a.moving && !a.wob;
@@ -1496,11 +1658,14 @@ function drawDino(c, a){
   bone(() => { c.moveTo(-3, -16); c.quadraticCurveTo(3, -22, 7, -20); c.quadraticCurveTo(10, -23 - head*8, 10, -27 - head*5); }, 3.3);
   bone(leg(legL), 2.8);
   bone(() => { c.moveTo(7, -18); c.lineTo(9.5, -15); c.lineTo(11, -15.5); }, 1.7);
+  if (a.jew && a.jew !== 'none') { c.save(); c.translate(8.6, -22.5 - head*3); c.rotate(-.5); c.scale(.8, .8); drawNeck(c, a.jew, 0, 0, 3.6); c.restore(); drawCuff(c, a.jew, 9.6, -15.2); }
   c.save(); c.translate(10.5, -28.5 - head*5); c.rotate(-head*.9);
   c.fillStyle = B; c.strokeStyle = O; c.lineWidth = 1.3;
   c.save(); c.translate(-1, 1.5); c.rotate(jaw*.5); c.beginPath(); c.moveTo(0, 0); c.lineTo(9, -.5); c.lineTo(8, 2); c.lineTo(0, 2.4); c.closePath(); c.fill(); c.stroke(); c.restore();
   c.beginPath(); c.moveTo(-3, -3); c.quadraticCurveTo(6, -5.5, 10, -1); c.lineTo(9.5, 1.2); c.lineTo(-2.5, 2.2); c.closePath(); c.fill(); c.stroke();
   c.fillStyle = O; c.beginPath(); c.arc(1.6, -1, 1.5, 0, 7); c.fill();
+  drawHoops(c, a.jew, -.6, -.6, .6);
+  if (a.hat && a.hat !== 'none') { c.save(); c.translate(2.4, -4.2); c.rotate(.12); c.scale(.72, .72); drawHat(c, a.hat, 0, 0, a.t); c.restore(); }
   c.restore();
 }
 function drawBubble(c, x, y, text, color){
@@ -1731,7 +1896,7 @@ function padGet(){
 function padUse(){ if (!appEl.classList.contains('pad')) { appEl.classList.add('pad'); GP.hintUntil = performance.now() + 7000; GP.hintKey = ''; } game.lastInput = 'pad'; }
 function padOff(){ padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; if (!appEl.classList.contains('pad')) return; appEl.classList.remove('pad'); if (GP.focus) GP.focus.classList.remove('padfocus'); GP.focus = null; }
 const padScreen = () => Object.keys(panels).find(k => !panels[k].hidden) || null;
-const PAD_BACK = {intro:'btnIntroBack', pause:'btnResume', online:'btnOnlineBack'};
+const PAD_BACK = {intro:'btnIntroBack', pause:'btnResume', online:'btnOnlineBack', closet:'btnDressDone'};
 function padTargets(root){
   const els = [...root.querySelectorAll('button, input, summary')];
   if (!$('invitePop').hidden) els.push(...$('invitePop').querySelectorAll('button'));
@@ -2029,12 +2194,12 @@ function startSolo(){
   game.kind = 'solo'; game.rules = guard ? 'team' : 'solo';
   const nb = guard ? SOLO_BOTS[i] : 1;
   buildWorld(i, {nPeds:nb});
-  world.guards = world.L.guards.map((d, s) => s === 0 && guard ? makeHumanGuard(0, 'me', 'me', myName()) : makeAIGuard(s));
+  world.guards = world.L.guards.map((d, s) => s === 0 && guard ? makeHumanGuard(0, 'me', 'me', myName(), save.lookG) : makeAIGuard(s));
   if (guard) {
-    world.exhibits = Array.from({length:nb}, (_, k) => { const kind = EX_IDS[(k + 1) % EX_IDS.length]; return makeExhibit({id:'#'+k, ctrl:'bot', kind, ped:k, name:exName(kind)}); });
+    world.exhibits = Array.from({length:nb}, (_, k) => { const kind = EX_IDS[(k + 1) % EX_IDS.length]; return makeExhibit({id:'#'+k, ctrl:'bot', kind, ped:k, name:exName(kind), look:botLook(k)}); });
     me.role = 'guard'; me.ent = world.guards[0]; game.botReact = BOT_REACT[i]; game.botNotice = BOT_NOTICE[i];
   } else {
-    world.exhibits = [makeExhibit({id:'me', ctrl:'me', kind:save.exhibit, ped:0, name:myName()})];
+    world.exhibits = [makeExhibit({id:'me', ctrl:'me', kind:save.exhibit, ped:0, name:myName(), look:save.lookEx})];
     me.role = 'ex'; me.ent = world.exhibits[0];
   }
   checkOrientation();
@@ -2365,7 +2530,7 @@ function drawPreviews(){
     const c = p.cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, size, size);
     const sel = p.id === save.exhibit;
     c.setTransform(dpr*1.25, 0, 0, dpr*1.25, size/2, size - 7*dpr);
-    drawFigure(c, {kind:p.id, moving:sel, wob:false, phase:game.t*9, pose:p.pose, face:1, t:game.t}, 0, 0);
+    drawFigure(c, {kind:p.id, moving:sel, wob:false, phase:game.t*9, pose:p.pose, face:1, t:game.t, ...save.lookEx}, 0, 0);
   }
 }
 function syncSoundButtons(){
@@ -2771,7 +2936,8 @@ function peerLeft(id){
   });
 }
 function myPres(){
-  const p = {g:'mad1', n:myName(), j:NET.joinedAt, ro:NET.role, k:save.exhibit, ep:game.ep};
+  const lk = NET.role === 'g' ? save.lookG : save.lookEx;
+  const p = {g:'mad1', n:myName(), j:NET.joinedAt, ro:NET.role, k:save.exhibit, ep:game.ep, ht:lk.hat, jw:lk.jew};
   const e = me.ent, playing = game.kind === 'room' && world && !world.demo && e && game.ep && game.ep === (NET.isHost ? NET.ep : (NET.H && NET.H.ep));
   const clear = ['x','y','m','rn','pz','f','c','o','cz','cb','cg','dg','a','w','off'];
   for (const k of clear) p[k] = null;
@@ -2875,16 +3041,16 @@ function startRoomNight(H){
   const myId = NET.myId;
   me.role = null; me.ent = null;
   world.guards = H.ro.g.map((owner, slot) => {
-    if (owner && owner === myId) { const g = makeHumanGuard(slot, 'me', owner, myName()); me.role = 'guard'; me.ent = g; return g; }
-    if (owner) { const pr = NET.peers.get(owner); return makeHumanGuard(slot, 'net', owner, cleanName(pr && pr.n)); }
+    if (owner && owner === myId) { const g = makeHumanGuard(slot, 'me', owner, myName(), save.lookG); me.role = 'guard'; me.ent = g; return g; }
+    if (owner) { const pr = NET.peers.get(owner); return makeHumanGuard(slot, 'net', owner, cleanName(pr && pr.n), {hat:pr && pr.ht, jew:pr && pr.jw}); }
     return NET.isHost ? makeAIGuard(slot) : Object.assign(makeAIGuard(slot), {ctrl:'mirror'});
   });
   world.exhibits = H.ro.e.map((id, i) => {
     if (!id) { const e = makeExhibit({id:'gone' + i, ctrl:'mirror', kind:'statue', ped:i}); e.gone = true; return e; }
-    if (id === myId) { const e = makeExhibit({id, ctrl:'me', kind:save.exhibit, ped:i, name:myName()}); me.role = 'ex'; me.ent = e; return e; }
-    if (id[0] === '#') { const kind = EX_IDS[((+id.slice(1)) + 1) % EX_IDS.length]; return makeExhibit({id, ctrl:NET.isHost ? 'bot' : 'mirror', kind, ped:i, name:exName(kind)}); }
+    if (id === myId) { const e = makeExhibit({id, ctrl:'me', kind:save.exhibit, ped:i, name:myName(), look:save.lookEx}); me.role = 'ex'; me.ent = e; return e; }
+    if (id[0] === '#') { const kind = EX_IDS[((+id.slice(1)) + 1) % EX_IDS.length]; return makeExhibit({id, ctrl:NET.isHost ? 'bot' : 'mirror', kind, ped:i, name:exName(kind), look:botLook(+id.slice(1))}); }
     const pr = NET.peers.get(id);
-    return makeExhibit({id, ctrl:'net', kind:EX_IDS.includes(pr && pr.k) ? pr.k : 'statue', ped:i, name:cleanName(pr && pr.n)});
+    return makeExhibit({id, ctrl:'net', kind:EX_IDS.includes(pr && pr.k) ? pr.k : 'statue', ped:i, name:cleanName(pr && pr.n), look:{hat:pr && pr.ht, jew:pr && pr.jw}});
   });
   for (const x of [...world.guards, ...world.exhibits]) if (x.ctrl === 'net' || x.ctrl === 'mirror') { x.tx = x.x; x.ty = x.y; if (x.kind === 'guard') x.ta = x.angle; }
   game.clock = typeof H.t === 'number' ? H.t/10 : -3; NET.clockBase = game.clock; NET.clockAt = performance.now();
@@ -3239,6 +3405,165 @@ function renderRoomFriends(){
   for (const {f, s} of on) ul.append(friendRow(f.n, s.t, true, [smallBtn('Invite', true, () => frInvite(f.id))]));
 }
 
+/* ---------- dress up: hats & jewelry ---------- */
+const dress = {who:'ex', built:false};
+const dressLook = () => dress.who === 'guard' ? save.lookG : save.lookEx;
+function openCloset(){
+  game.mode = 'closet'; dress.who = save.play === 'guard' ? 'guard' : 'ex';
+  $('hud').hidden = true; showPanel('closet'); renderCloset();
+}
+function iconCanvas(){ const cv = document.createElement('canvas'); cv.width = 80; cv.height = 80; cv.setAttribute('aria-hidden', 'true'); return cv; }
+function drawNoneIcon(c){ c.strokeStyle = 'rgba(236,232,221,.35)'; c.lineWidth = 3; c.beginPath(); c.arc(40, 40, 18, 0, 7); c.moveTo(27, 53); c.lineTo(53, 27); c.stroke(); }
+function hatIcon(cv, id){
+  const c = cv.getContext('2d'); c.clearRect(0, 0, 80, 80);
+  if (id === 'none') { drawNoneIcon(c); return; }
+  c.save(); c.translate(40, 58); c.scale(2.9, 2.9);
+  c.fillStyle = '#ece8dd'; c.strokeStyle = '#5b5e7f'; c.lineWidth = .8; c.beginPath(); c.arc(0, 5.5, 5.5, Math.PI, 0); c.fill(); c.stroke();
+  drawHat(c, id, 0, 0, 0); c.restore();
+}
+function jewIcon(cv, id){
+  const c = cv.getContext('2d'); c.clearRect(0, 0, 80, 80);
+  if (id === 'none') { drawNoneIcon(c); return; }
+  c.save(); c.translate(40, 34); c.scale(3.6, 3.6);
+  if (id === 'hoops') { c.fillStyle = '#ece8dd'; c.strokeStyle = '#5b5e7f'; c.lineWidth = .6; c.beginPath(); c.arc(0, -1, 5, 0, 7); c.fill(); c.stroke(); drawHoops(c, id, -5, 5, 0); }
+  else if (id === 'bracelets') { drawCuff(c, id, -3.5, 2); drawCuff(c, id, 3.5, 2); }
+  else { c.fillStyle = '#2b335c'; rr(c, -6, -1.5, 12, 10, 3); c.fill(); drawNeck(c, id, 0, -.6, 4.6); if (id === 'bling') drawHoops(c, id, -7.5, 7.5, -4); }
+  c.restore();
+}
+function buildCloset(){
+  if (dress.built) return; dress.built = true;
+  const mk = (list, host, kind) => {
+    for (const it of list) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.dataset.id = it.id;
+      const cv = iconCanvas(); (kind === 'hat' ? hatIcon : jewIcon)(cv, it.id);
+      const nm = document.createElement('span'); nm.textContent = it.name;
+      b.append(cv, nm);
+      b.addEventListener('click', () => { dressLook()[kind] = it.id; persist(); SFX.click(); renderCloset(); });
+      host.append(b);
+    }
+  };
+  mk(HATS, $('hatList'), 'hat'); mk(JEWELS, $('jewList'), 'jew');
+}
+function renderCloset(){
+  buildCloset();
+  const g = dress.who === 'guard', lk = dressLook();
+  $('dressEx').setAttribute('aria-pressed', String(!g)); $('dressGuard').setAttribute('aria-pressed', String(g));
+  $('dressName').textContent = g ? 'Night guard' : exName(save.exhibit);
+  for (const b of $('hatList').children) b.setAttribute('aria-pressed', String(b.dataset.id === lk.hat));
+  for (const b of $('jewList').children) b.setAttribute('aria-pressed', String(b.dataset.id === lk.jew));
+}
+function drawCloset(){
+  const cv = $('dressPreview'), c = cv.getContext('2d'), g = dress.who === 'guard';
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 300, 300);
+  c.setTransform(5.4, 0, 0, 5.4, 150, 272);
+  const bob = Math.sin(game.t*2.2)*.15;
+  drawFigure(c, {kind:g ? 'guard' : save.exhibit, moving:false, wob:false, phase:0, pose:g ? null : posesFor(save.exhibit)[g ? 0 : 3] , face:1, t:game.t, angle:-.15 + bob, ...dressLook()}, 0, 0);
+}
+function drawClosetIcon(){
+  const cv = $('closetIcon'), c = cv.getContext('2d'), g = save.play === 'guard';
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 68, 68);
+  c.setTransform(2.2, 0, 0, 2.2, 34, 92);
+  drawFigure(c, {kind:g ? 'guard' : save.exhibit, moving:false, pose:null, face:1, t:game.t, angle:0, ...(g ? save.lookG : save.lookEx)}, 0, 0);
+}
+function surpriseLook(){
+  const lk = dressLook();
+  lk.hat = HAT_IDS[1 + Math.floor(Math.random()*(HAT_IDS.length - 1))];
+  lk.jew = JEWEL_IDS[1 + Math.floor(Math.random()*(JEWEL_IDS.length - 1))];
+  persist(); SFX.gem(); renderCloset();
+}
+
+/* ---------- save file (.zip), like Noodle Bots ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function makeZip(files){
+  const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+  const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds()/2), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  for (const f of files) {
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const lh = new Uint8Array(30 + name.length), lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true); lv.setUint16(6, 0x0800, true); lv.setUint16(8, 0, true);
+    lv.setUint16(10, time, true); lv.setUint16(12, date, true); lv.setUint32(14, crc, true); lv.setUint32(18, size, true); lv.setUint32(22, size, true);
+    lv.setUint16(26, name.length, true); lv.setUint16(28, 0, true); lh.set(name, 30);
+    parts.push(lh, f.data);
+    const ch = new Uint8Array(46 + name.length), cv = new DataView(ch.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint16(8, 0x0800, true); cv.setUint16(10, 0, true);
+    cv.setUint16(12, time, true); cv.setUint16(14, date, true); cv.setUint32(16, crc, true); cv.setUint32(20, size, true); cv.setUint32(24, size, true);
+    cv.setUint16(28, name.length, true); cv.setUint32(42, offset, true); ch.set(name, 46);
+    central.push(ch); offset += lh.length + size;
+  }
+  const cdSize = central.reduce((a, c) => a + c.length, 0), end = new Uint8Array(22), ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true); ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+  return new Blob(parts.concat(central, [end]), {type:'application/zip'});
+}
+function parseZip(u8){
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength); let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('not a zip');
+  const count = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true); const files = new Map(), dec = new TextDecoder();
+  for (let k = 0; k < count && k < 64; k++) {
+    if (p + 46 > u8.length || dv.getUint32(p, true) !== 0x02014b50) throw new Error('bad zip');
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nlen));
+    if (lho + 30 > u8.length) throw new Error('bad zip');
+    const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+    if (start + csize > u8.length) throw new Error('bad zip');
+    files.set(name.split('/').pop(), {method, data:u8.subarray(start, start + csize)});
+    p += 46 + nlen + xlen + clen;
+  }
+  return files;
+}
+async function unzipEntry(e){
+  if (e.method === 0) return e.data;
+  if (e.method === 8 && typeof DecompressionStream !== 'undefined') return new Uint8Array(await new Response(new Blob([e.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  throw new Error('unsupported compression');
+}
+const slug = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 20);
+let dlApi = Promise.resolve(null);
+function saveMsg(t, warn){ const el = $('saveMsg'); el.textContent = t; el.hidden = !t; el.classList.toggle('warn', !!warn); }
+function buildSaveZip(){
+  const enc = new TextEncoder();
+  const data = {format:'museum-after-dark-save', version:1, savedAt:new Date().toISOString(), save};
+  return makeZip([
+    {name:'museum-after-dark-save.json', data:enc.encode(JSON.stringify(data, null, 2))},
+    {name:'README.txt', data:enc.encode('This is a Museum After Dark save file.\r\nIt holds your stars, outfits, settings, name and friends.\r\nTo use it, open Museum After Dark, open Save file in the menu and choose Load save.\r\n')}
+  ]);
+}
+async function exportSave(){
+  persist();
+  const blob = buildSaveZip(), fname = `museum-after-dark-save-${slug(save.name) || 'player'}.zip`;
+  if (IN_CLAUDE) {
+    const dl = await dlApi;
+    if (!dl) { saveMsg("Downloads aren't available in this view. Try the website version.", true); return; }
+    try { await dl.save({filename:fname, data:blob}); saveMsg('Save downloaded. Keep the .zip somewhere safe.'); }
+    catch (e) { const code = e && e.code; saveMsg(code === 'declined' ? 'Download cancelled.' : code === 'rate_limited' ? 'A download is already waiting for you to confirm.' : "Couldn't download the save here.", code !== 'declined'); }
+    return;
+  }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = fname; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  saveMsg('Save downloaded. Keep the .zip somewhere safe.');
+}
+async function importSave(file){
+  try {
+    if (!file || file.size > 5*1024*1024) throw new Error('too big');
+    const files = parseZip(new Uint8Array(await file.arrayBuffer()));
+    const js = files.get('museum-after-dark-save.json'); if (!js) throw new Error('no save inside');
+    const d = JSON.parse(new TextDecoder().decode(await unzipEntry(js)));
+    if (!d || d.format !== 'museum-after-dark-save' || !d.save) throw new Error('wrong format');
+    const oldFid = save.fid;
+    save = loadSave(d.save); save.nb = true; persist();
+    applyVolume(); applyVoices(); syncSoundButtons();
+    if (!IN_CLAUDE && save.fid !== oldFid) {   // a different friend code: reconnect the friends list with it
+      for (const c of FR.conns) c.close(); FR.conns = []; FR.started = false; clearInterval(FR.tick); FR.status.clear(); FR.reqIn.clear(); FR.drawn = '';
+      if (save.fid) frStart();
+    }
+    $('nameIn').value = save.name; renderMenu();
+    saveMsg(`Loaded the save${save.name ? ` for ${save.name}` : ''}.`); SFX.win();
+  } catch (e) {
+    saveMsg("That file isn't a Museum After Dark save. Choose the .zip you downloaded from this game.", true);
+  }
+}
+
 /* ---------- wiring ---------- */
 $('btnPlay').addEventListener('click', () => { audioInit(); openIntro(game.sel); });
 $('btnFriends').addEventListener('click', () => { audioInit(); openOnline(); });
@@ -3251,6 +3576,14 @@ $('btnResume').addEventListener('click', togglePause);
 $('btnRestart').addEventListener('click', startSolo);
 $('btnToMenu').addEventListener('click', () => { if (game.kind === 'room') leaveRoom(false); else openMenu(); });
 $('btnResAgain').addEventListener('click', startSolo);
+$('btnCloset').addEventListener('click', () => { audioInit(); openCloset(); });
+$('dressEx').addEventListener('click', () => { dress.who = 'ex'; renderCloset(); });
+$('dressGuard').addEventListener('click', () => { dress.who = 'guard'; renderCloset(); });
+$('btnDressDone').addEventListener('click', openMenu);
+$('btnDressRandom').addEventListener('click', surpriseLook);
+$('btnSaveZip').addEventListener('click', exportSave);
+$('btnLoadZip').addEventListener('click', () => { $('loadIn').value = ''; $('loadIn').click(); });
+$('loadIn').addEventListener('change', () => { const f = $('loadIn').files && $('loadIn').files[0]; if (f) importSave(f); });
 $('btnSoundMenu').addEventListener('click', toggleSound);
 $('btnSoundPause').addEventListener('click', toggleSound);
 $('btnMusicMenu').addEventListener('click', toggleMusic);
@@ -3332,7 +3665,8 @@ function frame(now){
     for (let k = particles.length - 1; k >= 0; k--) { const p = particles[k]; p.t += dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 120*dt; if (p.t > p.life) particles.splice(k, 1); }
     cvs.classList.toggle('aim', me.role === 'guard' && inNight());
     render();
-    if (game.mode === 'menu') drawPreviews();
+    if (game.mode === 'menu') { drawPreviews(); drawClosetIcon(); }
+    if (game.mode === 'closet') drawCloset();
     if (NET.room) sendPres();
   } catch (e) { console.error(e); }
   requestAnimationFrame(frame);
@@ -3351,6 +3685,7 @@ function boot(data){
     addEventListener('focusout', () => setTimeout(() => { if (window.scrollY) window.scrollTo(0, 0); resize(); }, 300));
   }
   buildStyleRow(); padSetup(); syncSoundButtons();
+  if (IN_CLAUDE) dlApi = Promise.resolve(window.claude.use('downloads')).catch(() => null);
   resize(); openMenu(); initOnline();
   if (!IN_CLAUDE && save.fid) frStart();
   if (!IN_CLAUDE) {
