@@ -96,6 +96,9 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,8.5vw,46px);l
 .seg button{flex:1;min-height:40px;border:0;border-radius:6px;background:transparent;color:var(--dust);font:600 15px var(--ui);cursor:pointer;touch-action:manipulation;padding:0 8px}
 .seg button[aria-pressed="true"]{background:var(--brass);color:var(--ink)}
 .seg button:disabled{cursor:default}
+.newtag{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;background:#c63c58;color:#fff;font-size:10px;font-weight:700;letter-spacing:.04em;vertical-align:2px;text-transform:uppercase}
+.eye-red{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff3448;box-shadow:0 0 6px #ff3448,0 0 2px #ff3448}
+.hunt-card .night-no{color:#ff5a6c}
 .seg.nightpick button{font-family:var(--display);font-weight:800}
 
 .exhibits{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
@@ -229,11 +232,12 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
     </div>
     <div class="hud-stats">
       <div class="stat room" id="hudRoom" hidden></div>
-      <div class="stat" title="Time until sunrise at 6:00 AM">
+      <div class="stat" id="hudClockStat" title="Time until sunrise at 6:00 AM">
         <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4a8.5 8.5 0 1 0 11.5 11.5z" fill="var(--torch)"/></svg>
         <span id="hudClock">12:00 AM</span>
       </div>
-      <div class="stat" title="Gems found"><span class="gem-ico" aria-hidden="true"></span><span id="hudGems">0/3</span></div>
+      <div class="stat" id="hudGemStat" title="Gems found"><span class="gem-ico" aria-hidden="true"></span><span id="hudGems">0/3</span></div>
+      <div class="stat" id="hudSize" hidden title="How big the giant is"><span class="eye-red" aria-hidden="true"></span><span id="hudSizeT">Size 1</span></div>
       <div class="stat hearts" id="hudLives" aria-label="Chances left"></div>
       <div class="stat" id="hudLeft" hidden title="Exhibits still sneaking around"></div>
       <button class="iconbtn" id="btnPause" aria-label="Pause">
@@ -259,17 +263,22 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
         <h1>Museum After Dark</h1>
         <p class="lede">When the lights go out, the exhibits come alive. Sneak around while the night guard isn't looking, or be the guard and catch them moving.</p>
         <hr class="rule">
+        <h2 class="section-label">Game mode</h2>
+        <div class="seg" role="group" aria-label="Game mode">
+          <button type="button" id="modeNights" aria-pressed="true">Nights</button>
+          <button type="button" id="modeHunt" aria-pressed="false">Huntdown <span class="newtag">New</span></button>
+        </div>
         <h2 class="section-label">Play as</h2>
         <div class="seg" role="group" aria-label="Play as">
           <button type="button" id="playEx" aria-pressed="true">An exhibit</button>
           <button type="button" id="playGuard" aria-pressed="false">The night guard</button>
         </div>
         <div class="group" id="exhibitGroup">
-          <h2 class="section-label">Choose your exhibit</h2>
+          <h2 class="section-label" id="exhibitLbl">Choose your exhibit</h2>
           <div class="exhibits" id="exhibitList"></div>
         </div>
         <button class="btn ghost dress" id="btnCloset"><canvas id="closetIcon" width="68" height="68" aria-hidden="true"></canvas><span id="closetLbl">Hats &amp; jewelry</span></button>
-        <h2 class="section-label">Pick a night</h2>
+        <h2 class="section-label" id="nightLbl">Pick a night</h2>
         <div class="nights" id="nightList"></div>
         <details class="how" id="howTo">
           <summary>How to play</summary>
@@ -290,6 +299,14 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <li>Staring at a frozen exhibit makes your flashlight overheat and turn off for 2 seconds.</li>
             <li>Spinning around nonstop makes you dizzy for a moment.</li>
             <li>On a phone, your left thumb walks and your right thumb aims. On a computer, <kbd>WASD</kbd> walks and the mouse aims. With a controller, the left stick walks and the right stick aims.</li>
+          </ul>
+          <h4>Huntdown</h4>
+          <ul>
+            <li>One exhibit wakes up as a giant with glowing red eyes and hunts the night guards across a big wing of the museum.</li>
+            <li>Guards only see what their flashlights show. Red eyes in the dark and red footstep rings mean the giant is close.</li>
+            <li>Shine your light on the giant to freeze it. It only lasts a moment: it breaks out of the light and can't be frozen again right away.</li>
+            <li>Every 20 seconds it grows bigger, faster and harder to hold still. The guard who lasts the longest wins.</li>
+            <li>You can also be the giant and hunt the guards yourself.</li>
           </ul>
           <h4>With a controller</h4>
           <ul class="padmap" id="padMap"></ul>
@@ -360,9 +377,9 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
         <p class="muted" id="introWing">Gallery A · Sculpture</p>
         <p class="lede" id="introBlurb"></p>
         <dl class="facts">
-          <div><dt>Gems</dt><dd id="introGems">3</dd></div>
+          <div><dt id="introGemsLbl">Gems</dt><dd id="introGems">3</dd></div>
           <div><dt id="introWhoLbl">Guards</dt><dd id="introGuards">1</dd></div>
-          <div><dt>Sunrise</dt><dd>6:00 AM</dd></div>
+          <div><dt id="introSunLbl">Sunrise</dt><dd id="introSun">6:00 AM</dd></div>
         </dl>
         <p class="tip" id="introTip"></p>
         <div class="row">
@@ -457,21 +474,26 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
         <p class="muted small-text" id="roomSub">Tell your friends this code so they can join.</p>
         <h3 class="section-label" id="playersLbl">Players</h3>
         <ul class="list" id="playerList"></ul>
+        <h3 class="section-label">Game mode</h3>
+        <div class="seg" role="group" aria-label="Game mode">
+          <button type="button" id="roomModeN" aria-pressed="true">Nights</button>
+          <button type="button" id="roomModeH" aria-pressed="false">Huntdown</button>
+        </div>
         <h3 class="section-label">You play as</h3>
         <div class="seg" role="group" aria-label="Your role">
           <button type="button" id="roleEx" aria-pressed="true">An exhibit</button>
           <button type="button" id="roleGuard" aria-pressed="false">A night guard</button>
         </div>
-        <h3 class="section-label">Night</h3>
+        <h3 class="section-label" id="roomNightLbl">Night</h3>
         <div class="seg nightpick" id="roomNights" role="group" aria-label="Night"></div>
         <p class="muted small-text" id="roomNightName"></p>
         <div class="stepper">
-          <span class="lbl" style="flex:1">Bot exhibits</span>
+          <span class="lbl" style="flex:1" id="botLbl">Bot exhibits</span>
           <button class="btn ghost" id="botMinus" aria-label="Fewer bot exhibits">−</button>
           <b id="botCount">2</b>
           <button class="btn ghost" id="botPlus" aria-label="More bot exhibits">+</button>
         </div>
-        <p class="tip"><b>Team rules:</b> Exhibits grab gems and carry them back to their pedestals. Get caught carrying one and it goes back where it was. Exhibits win when every gem is home. Guards win at 6:00 AM, or by catching every exhibit three times.</p>
+        <p class="tip" id="roomTip"><b>Team rules:</b> Exhibits grab gems and carry them back to their pedestals. Get caught carrying one and it goes back where it was. Exhibits win when every gem is home. Guards win at 6:00 AM, or by catching every exhibit three times.</p>
         <div class="group" id="roomFriends" hidden>
           <h3 class="section-label">Invite friends</h3>
           <ul class="list" id="roomFriendList"></ul>
@@ -631,7 +653,7 @@ function cleanName(v, max = 14){
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
   return s || 'Player';
 }
-function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
+function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', mode:'nights', huntAs:'guard', bestH:0, starH:0, bestHG:0, starHG:0, name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
 function loadSave(seed){
   const b = saveDefaults();
@@ -649,6 +671,10 @@ function loadSave(seed){
     if (Number.isFinite(s.vol)) b.vol = clamp(s.vol, 0, 1);
     if (typeof s.silentOk === 'boolean') b.silentOk = s.silentOk;
     if (s.play === 'guard') b.play = 'guard';
+    if (s.mode === 'hunt') b.mode = 'hunt';
+    if (s.huntAs === 'giant') b.huntAs = 'giant';
+    for (const k of ['bestH', 'bestHG']) if (Number.isFinite(s[k])) b[k] = clamp(Math.floor(s[k]), 0, 36000);
+    for (const k of ['starH', 'starHG']) if (Number.isFinite(s[k])) b[k] = clamp(s[k] | 0, 0, 3);
     if (typeof s.name === 'string' && s.name.trim()) b.name = cleanName(s.name);
     if (typeof s.fid === 'string' && FID_RE.test(s.fid)) b.fid = s.fid;
     if (Array.isArray(s.friends)) b.friends = s.friends.filter(f => f && FID_RE.test(f.id)).slice(0, FR_MAX).map(f => ({id:f.id, n:cleanName(f.n)}));
@@ -767,6 +793,10 @@ const SFX = {
   join(){ tone(660,.1,'triangle',.06); tone(990,.14,'triangle',.06,.09); },
   click(){ tone(880,.035,'triangle',.04); },
   win(){ [523,659,784,1047].forEach((f,i) => tone(f,.22,'triangle',.07,i*.11)); },
+  stomp(v=1){ tone(48,.26,'sine',.12*v,0,34); tone(104,.07,'triangle',.03*v); },
+  roar(){ tone(150,.8,'sawtooth',.045,0,55); tone(104,.7,'square',.025,.04,44); tone(230,.35,'sawtooth',.02,0,90); },
+  grow(){ [131,117,98].forEach((f,i) => tone(f,.32,'sawtooth',.035,i*.14,f*.75)); },
+  zap(){ tone(1320,.12,'triangle',.035,0,880); tone(660,.2,'sine',.03,.03); },
   lose(){ [392,330,262].forEach((f,i) => tone(f,.3,'triangle',.06,i*.16)); }
 };
 
@@ -842,9 +872,11 @@ function transposeWorld(){
     g.angle = fa(g.angle);
     for (const k of ['target','heading','scanBase','ta']) if (g[k] != null) g[k] = fa(g[k]);
     if (g.sweep) g.sweep = -g.sweep;
+    swapP(g.seen);
   }
   for (const e of w.exhibits) { swapP(e); swT(e); e.rings.forEach(swapP); e.path = null; }
-  particles.forEach(swapP);
+  particles.forEach(swapP); swapP(w.cam);
+  w.hf = null; w.open = null;
   w.transposed = !w.transposed;
   indexStatics();
 }
@@ -929,7 +961,7 @@ function castRay(ox, oy, dx, dy, maxD){
 }
 function conePoly(g){
   const N = 36, pts = g.poly; pts.length = 0;
-  if (g.off > 0) return;
+  if (g.off > 0 || g.out) return;
   for (let k = 0; k <= N; k++) {
     const a = g.angle - g.cone + 2*g.cone*k/N, dx = Math.cos(a), dy = Math.sin(a);
     const d = castRay(g.x, g.y, dx, dy, g.range);
@@ -937,7 +969,7 @@ function conePoly(g){
   }
 }
 function guardSees(g, px, py){
-  if (g.off > 0) return false;
+  if (g.off > 0 || g.out) return false;
   const dx = px - g.x, dy = py - g.y, d = Math.hypot(dx, dy);
   if (d > g.range + PR) return false;
   if (d < 2) return true;
@@ -1138,7 +1170,7 @@ function tryCarry(e){
 
 /* ---------- game state ---------- */
 const game = {mode:'menu', kind:'solo', rules:'solo', night:0, sel:0, clock:0, catches:0, t:0, botReact:.3, botNotice:.65,
-  needRelease:false, caughtT:0, caughtBy:null, flash:0, hints:{}, lastInput:'touch', ep:0, endShown:-1};
+  needRelease:false, caughtT:0, shake:0, huntEnd:0, caughtBy:null, flash:0, hints:{}, lastInput:'touch', ep:0, endShown:-1};
 const inNight = () => game.mode === 'play' || game.mode === 'caught';
 
 /* ---------- input ---------- */
@@ -1234,6 +1266,7 @@ function updateMyExhibit(dt){
 /* ---------- me: guard ---------- */
 function updateMyGuard(dt){
   const g = me.ent; g.t += dt;
+  if (g.out) { g.moving = false; return; }
   if (g.bubbleT > 0) { g.bubbleT -= dt; if (g.bubbleT <= 0) g.bubble = null; }
   let {x:ix, y:iy} = readInput();
   if (game.clock < 0) ix = iy = 0;
@@ -1267,6 +1300,7 @@ function updateMyGuard(dt){
     g.dizzy = 3; g.spin = 0; SFX.peek();
     hintOnce('dizzy', 'Spinning around made you dizzy! Turn in smaller sweeps.', 3200);
   }
+  if (game.rules === 'hunt') { g.heat = 0; return; }
   if (g.off > 0) { g.off = Math.max(0, g.off - dt); g.heat = 0; return; }
   let pinned = false;
   for (const ex of world.exhibits) if (!ex.out && !ex.gone && ex.invuln <= 0 && !ex.moving && guardSees(g, ex.x, ex.y)) { pinned = true; break; }
@@ -1310,6 +1344,7 @@ function fit(){
   const W = cvs.width, H = cvs.height, pad = 10*dpr, top = vInset.top, bot = vInset.bot;
   const ww = world.W*T, wh = world.H*T + WALL_H;
   const s = Math.min((W - 2*pad)/ww, (H - top - bot - 2*pad)/wh);
+  if (world.hunt && !world.demo) { huntView(s, W, H, top, bot, pad, ww, wh); return; }
   // with room to spare (phones held upright) the museum sits just under the top bar, leaving the bottom for thumbs
   const spare = H - top - bot - wh*s;
   view = {s, ox:(W - ww*s)/2, oy:top + Math.min(spare/2, 14*dpr) + WALL_H*s};
@@ -1584,6 +1619,14 @@ function seg(c, x1, y1, x2, y2, w, col, out){
 }
 function drawFigure(c, a, x, y){
   c.save(); c.translate(x, y);
+  if (a.big) {
+    // the giant: much bigger, with a dark red glow around it, shaking while a light holds it
+    if (a.hs === 1) c.translate(Math.sin(a.t*70)*(.6 + 1.6*clamp(a.strain/giantHold(a.stage || 0), 0, 1))*a.sz*.5, 0);
+    const r = 26*a.sz, gr = c.createRadialGradient(0, -14*a.sz, 0, 0, -14*a.sz, r);
+    gr.addColorStop(0, a.hs === 2 ? 'rgba(255,40,60,.34)' : 'rgba(190,30,50,.22)'); gr.addColorStop(1, 'rgba(190,30,50,0)');
+    c.fillStyle = gr; c.fillRect(-r, -14*a.sz - r, 2*r, 2*r);
+    c.scale(a.sz, a.sz);
+  }
   c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(0, 1, 10, 4, 0, 0, 7); c.fill();
   if (a.kind === 'dino') drawDino(c, a); else drawHumanoid(c, a);
   c.restore();
@@ -1643,6 +1686,7 @@ function drawHumanoid(c, a){
     c.fillStyle = F.out; c.beginPath(); c.arc(-2.2, hy + .6, .9, 0, 7); c.arc(2.2, hy + .6, .9, 0, 7); c.fill();
     c.fillStyle = '#6b4a33'; rr(c, -3, hy + 2.6, 6, 1.6, .8); c.fill();
   }
+  if (a.big) { c.fillStyle = a.hs === 2 ? '#ffd6d6' : '#ff3448'; const ey = a.kind === 'knight' ? hy - .9 : hy - .2; c.beginPath(); c.arc(-2.3, ey, 1.35, 0, 7); c.arc(2.3, ey, 1.35, 0, 7); c.fill(); }
   drawHoops(c, a.jew, -6.2, 6.2, hy + 1);
   const top = a.kind === 'statue' ? hy - 6.8 : a.kind === 'knight' ? hy - 6.6 : a.kind === 'guard' ? hy - 5.4 : hy - 5.6;
   drawHat(c, a.hat, 0, top, a.t);
@@ -1668,7 +1712,7 @@ function drawDino(c, a){
   c.fillStyle = B; c.strokeStyle = O; c.lineWidth = 1.3;
   c.save(); c.translate(-1, 1.5); c.rotate(jaw*.5); c.beginPath(); c.moveTo(0, 0); c.lineTo(9, -.5); c.lineTo(8, 2); c.lineTo(0, 2.4); c.closePath(); c.fill(); c.stroke(); c.restore();
   c.beginPath(); c.moveTo(-3, -3); c.quadraticCurveTo(6, -5.5, 10, -1); c.lineTo(9.5, 1.2); c.lineTo(-2.5, 2.2); c.closePath(); c.fill(); c.stroke();
-  c.fillStyle = O; c.beginPath(); c.arc(1.6, -1, 1.5, 0, 7); c.fill();
+  c.fillStyle = a.big ? (a.hs === 2 ? '#ffd6d6' : '#ff3448') : O; c.beginPath(); c.arc(1.6, -1, 1.5, 0, 7); c.fill();
   drawHoops(c, a.jew, -.6, -.6, .6);
   if (a.hat && a.hat !== 'none') { c.save(); c.translate(2.4, -4.2); c.rotate(.12); c.scale(.72, .72); drawHat(c, a.hat, 0, 0, a.t); c.restore(); }
   c.restore();
@@ -1854,6 +1898,12 @@ function heartSchedule(now){
 }
 // How close the nearest flashlight is to you, from 0 (safe) to 1 (in the light).
 function tensionNow(){
+  if (world && !world.demo && inNight() && game.rules === 'hunt') {
+    const G = world.giant, m = me.ent; if (!G || !m) return 0;
+    if (me.role === 'giant') return G.hs === 1 ? .55 : 0;
+    if (m.out) return 0;
+    return clamp(1 - (dist(m, G) - 70)/420, 0, 1)*(G.hs === 2 ? 1 : .9);
+  }
   if (!world || world.demo || !inNight() || me.role !== 'ex' || !me.ent || me.ent.out) return 0;
   const e = me.ent; let t = 0;
   for (const g of world.guards) {
@@ -2085,7 +2135,7 @@ function updateVoices(dt){
   }
   // now and then a guard on patrol yawns
   VOICE.yawnAt -= dt;
-  if (VOICE.yawnAt <= 0) {
+  if (VOICE.yawnAt <= 0 && game.rules !== 'hunt') {
     VOICE.yawnAt = 28 + Math.random()*30;
     const g = mpick(world.guards.filter(x => x !== me.ent && (x.ctrl === 'ai' || x.ctrl === 'mirror') && !x.bubble));
     if (g && game.clock > 8) playVoice('yawn', g, {vol:.85});
@@ -2097,8 +2147,528 @@ function stopBreath(){
 }
 
 
+/* ---------- Huntdown ----------
+   A second game mode. One exhibit wakes up as a giant with glowing red eyes and hunts the night
+   guards through a big wing of the museum. Guards only see what their flashlights show. A light on
+   the giant freezes it, but only for a moment: it strains, breaks out of the light and keeps coming.
+   Every 20 seconds it grows bigger, faster and stronger. The guard who lasts the longest wins. */
+const HUNT = {
+  name:'The Great Wing', grow:20, maxStage:10,
+  map:[
+    '####w####w#####ww#####w####w####',
+    '#.........#..........#.........#',
+    '#......P..#..........#..GG.....#',
+    '#..GG.....#.P......P........P..#',
+    '#..GG..........................#',
+    '#..............S.....#.........#',
+    'w.........#..........#..P.rrr..w',
+    '#.........#..........#.........#',
+    '#.rrr.GG..#...DDDD...#.........#',
+    '#.............DDDD...####..###.#',
+    '#.............DDDD...#.........#',
+    '#.........#..........#.........#',
+    '#.....rrr.#.................P..#',
+    'w.........#....................w',
+    '#..............GG....#..GG.....#',
+    '#..P.................#..GG.....#',
+    '#......P..#.P......P...........#',
+    '#.........#.................P..#',
+    '#.........#..........#.........#',
+    '################################'],
+  spawns:[[1,1],[30,18],[30,1],[1,18],[12,18],[19,1],[5,10],[26,11]]
+};
+const BOT_GUARDS = ['Rosa', 'Mo', 'Ike', 'Dee', 'Sal', 'Tess', 'Lou', 'Max'];
+const HUNT_BOT_SPEED = GUARD_SPEED*.9;
+const huntStage = () => clamp(Math.floor(Math.max(0, game.clock)/HUNT.grow), 0, HUNT.maxStage);
+const giantSize = k => 1.7 + .22*k;
+const giantSpeed = k => 86 + 7*k;
+const giantHold = k => Math.max(.45, 1.3 - .09*k);   // how long one light can hold it still
+const giantRage = k => 1.4 + .12*k;                 // how long it ignores lights after breaking out
+const giantReach = G => 12 + 7*G.sz;
+const giantR = G => 11 + G.sz*1.5;
+const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0'); };
+function huntBotLook(s){ const hats = ['cowboy', 'top', 'beanie', 'pirate', 'party', 'wizard', 'bow', 'propeller']; return {hat:hats[s % hats.length], jew:'none'}; }
+
+/* ---------- the big map ---------- */
+function buildHuntWorld(o = {}){
+  const grid = HUNT.map.map(r => r.split('')), H = grid.length, W = grid[0].length;
+  let sx = 15, sy = 5;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x] === 'S') { sx = x; sy = y; grid[y][x] = '.'; }
+  world = {i:-1, L:{name:HUNT.name, wing:'Huntdown', duration:1e9, guards:[], peek:0}, W, H, grid, peds:[{x:(sx+.5)*T, y:(sy+.5)*T}], gems:[], guards:[], exhibits:[],
+    demo:!!o.demo, transposed:false, dino:[], moons:[], hunt:true, giant:null, cam:null, spec:null, hf:null, hfT:0, open:null};
+  indexStatics();
+}
+// Distances (in steps) from one cell to every cell it can walk to, up to maxD.
+function bfsDist(sx, sy, maxD = 999){
+  const W = world.W, H = world.H, D = new Int16Array(W*H).fill(-1), q = [sy*W + sx];
+  if (blocks(sx, sy)) return D;
+  D[q[0]] = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi], x = c % W, y = (c - x)/W, d = D[c]; if (d >= maxD) continue;
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + dx, ny = y + dy; if (blocks(nx, ny)) continue;
+      const n = ny*W + nx; if (D[n] !== -1) continue; D[n] = d + 1; q.push(n);
+    }
+  }
+  return D;
+}
+const huntField = c => bfsDist(c[0], c[1]);
+// How open the area around a cell is. Corners score low, so guards don't run into them.
+function openAt(i){
+  if (!world.open) {
+    const W = world.W, H = world.H, o = new Int8Array(W*H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let n = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (!blocks(x + dx, y + dy)) n++; o[y*W + x] = n; }
+    world.open = o;
+  }
+  return world.open[i];
+}
+
+/* ---------- people ---------- */
+function makeHuntGuard(slot, ctrl, id, name, look){
+  const [cx, cy] = HUNT.spawns[slot % HUNT.spawns.length];
+  let x = (cx + .5)*T + (slot >= HUNT.spawns.length ? 8 : 0), y = (cy + .5)*T;
+  if (world.transposed) { const t = x; x = y; y = t; }
+  const p = world.peds[0], a0 = Math.atan2(p.y - y, p.x - x);
+  return {kind:'guard', ctrl, slot, id, name, range:210, cone:.5, x, y, angle:a0, target:a0, heading:a0, state:'walk', bubble:null, bubbleT:0, phase:0, poly:[], off:0, heat:0, moving:false, t:0, seed:slot*2.3,
+    out:false, ot:0, aware:false, react:0, seenAt:-99, seen:null, path:null, repath:0, jit:0, panic:0, hunt:true, ...cleanLook(look)};
+}
+function makeGiant(o){
+  const e = makeExhibit({id:o.id, ctrl:o.ctrl, kind:o.kind, ped:0, name:o.name, look:o.look, hold:0});
+  return Object.assign(e, {big:true, stage:0, sz:giantSize(0), sp:giantSpeed(0), hs:0, strain:0, ls:0, rage:0, munch:0, stepT:.3, prey:null, lit:null});
+}
+function demoHunt(){
+  buildHuntWorld({demo:true});
+  world.guards = [0, 1, 2, 3].map(s => makeHuntGuard(s, 'still', 'ai' + s, BOT_GUARDS[s], huntBotLook(s)));
+  const G = makeGiant({id:'#G', ctrl:'still', kind:'statue', name:'The giant'});
+  world.exhibits = [G]; world.giant = G;
+  me.role = null; me.ent = null; checkOrientation();
+}
+
+/* ---------- solo ---------- */
+function startHuntSolo(){
+  const giant = save.huntAs === 'giant';
+  game.kind = 'solo'; game.rules = 'hunt'; game.night = 0;
+  buildHuntWorld();
+  world.guards = [0, 1, 2, 3].map(s => (!giant && s === 0) ? makeHuntGuard(0, 'me', 'me', myName(), save.lookG) : makeHuntGuard(s, 'ai', 'ai' + s, BOT_GUARDS[s], huntBotLook(s)));
+  const G = giant ? makeGiant({id:'me', ctrl:'me', kind:save.exhibit, name:myName(), look:save.lookEx})
+    : makeGiant({id:'#G', ctrl:'bot', kind:mpick(EX_IDS), name:'The giant'});
+  world.exhibits = [G]; world.giant = G;
+  me.role = giant ? 'giant' : 'guard'; me.ent = giant ? G : world.guards[0];
+  checkOrientation();
+  Object.assign(game, {mode:'play', clock:-3, catches:0, needRelease:false, caughtBy:null, flash:0, ep:0, huntEnd:0});
+  particles.length = 0; stick.active = aimStick.active = false;
+  setHudHunt(); $('hud').hidden = false; showPanel(null); updateHUD(true); audioInit(); frTickSoon();
+  hint(giant ? say({touch:'You are the giant! Drag to stomp after the guards. Their lights freeze you for a moment.', keys:'You are the giant! WASD or the arrow keys to stomp after the guards. Their lights freeze you for a moment.', pad:'You are the giant! Left stick to stomp after the guards. Their lights freeze you for a moment.'})
+    : say({touch:'Survive the giant! Left thumb walks, right thumb aims your light. Your light freezes it for a moment.', keys:'Survive the giant! WASD walks, the mouse aims your light. Your light freezes it for a moment.', pad:'Survive the giant! Left stick walks, right stick aims your light. Your light freezes it for a moment.'}), 4200);
+}
+function setHudHunt(){
+  $('hudKicker').textContent = me.role === 'giant' ? 'Huntdown · Giant' : 'Huntdown';
+  $('hudName').textContent = HUNT.name;
+  $('hudGemStat').hidden = true; $('hudSize').hidden = false;
+  $('hudClockStat').title = 'How long the night has lasted';
+}
+function openHuntIntro(){
+  game.mode = 'intro';
+  const giant = save.huntAs === 'giant';
+  demoHunt(); me.role = giant ? 'giant' : 'guard';
+  $('introKicker').textContent = giant ? 'Huntdown · You are the giant' : 'Huntdown';
+  $('introName').textContent = HUNT.name; $('introWing').textContent = giant ? 'Catch every night guard' : 'Survive the giant';
+  $('introBlurb').textContent = giant
+    ? `You woke up as a giant ${exName(save.exhibit).toLowerCase()} with glowing red eyes. Hunt down all 4 night guards. Their flashlights freeze you for a moment, then you break free. You grow bigger and faster every 20 seconds.`
+    : 'One of the exhibits woke up as a giant with glowing red eyes, and it\'s hunting the night guards. You can only see what your flashlight shows. Shine it on the giant to freeze it for a moment, but it breaks free and keeps coming. The longer you last, the bigger and stronger it gets.';
+  $('introGemsLbl').textContent = 'Guards'; $('introGems').textContent = '4';
+  $('introWhoLbl').textContent = 'Giant'; $('introGuards').textContent = '1';
+  $('introSunLbl').textContent = 'It grows'; $('introSun').textContent = 'Every 20 s';
+  $('introTip').innerHTML = giant
+    ? '<b>Tip:</b> Lights can\'t freeze you right after you break free. Use that moment to charge! Stomping is loud, so guards hear you coming. <b>Phone:</b> drag to move. <b>Computer:</b> WASD. <b>Controller:</b> left stick.'
+    : '<b>Tip:</b> Red eyes in the dark mean it\'s close. Keep your light on it while you back away, and don\'t get stuck in a corner. <b>Phone:</b> left thumb walks, right thumb aims. <b>Computer:</b> WASD walks, the mouse aims. <b>Controller:</b> left stick walks, right stick aims.';
+  $('hud').hidden = true;
+  showPanel('intro'); $('btnLightsOut').focus({preventScroll:true});
+}
+function endHuntSolo(){
+  const G = world.giant, guard = me.role === 'guard', n = world.guards.length;
+  const row = g => `${g === me.ent ? 'You' : g.name} ${g.out ? mmss(g.ot) : '(still going)'}`;
+  const ranked = world.guards.slice().sort((a, b) => (b.out ? b.ot : 1e9) - (a.out ? a.ot : 1e9));
+  if (guard) {
+    const t = me.ent.ot, place = 1 + world.guards.filter(g => g !== me.ent && (!g.out || g.ot > t)).length;
+    const stars = t >= 150 ? 3 : t >= 90 ? 2 : t >= 40 ? 1 : 0, best = t > save.bestH;
+    if (best) save.bestH = Math.floor(t); save.starH = Math.max(save.starH, stars); persist();
+    if (place === 1) SFX.win(); else SFX.lose();
+    showResult({kicker:'Huntdown', title: place === 1 ? 'You lasted the longest!' : 'The giant got you!', lose: place !== 1, stars,
+      text:`You survived ${mmss(t)}${best ? ', your best yet' : ''}, and the giant grew to size ${G.stage + 1}. ${place === 1 ? 'Every other guard got caught first.' : `You came in place ${place} of ${n}.`} ${ranked.map(row).join(' · ')}.`,
+      primary:'Try again', onPrimary:startSolo, again:false});
+  } else {
+    const t = Math.max(0, game.clock), stars = t <= 90 ? 3 : t <= 150 ? 2 : 1, best = !save.bestHG || t < save.bestHG;
+    if (best) save.bestHG = Math.ceil(t); save.starHG = Math.max(save.starHG, stars); persist();
+    SFX.win();
+    showResult({kicker:'Huntdown · Giant', title:'You caught every guard!', stars,
+      text:`All ${n} guards caught in ${mmss(t)}${best ? ', your fastest yet' : ''}. ${ranked[0].name} lasted the longest (${mmss(ranked[0].ot)}).`,
+      primary:'Play again', onPrimary:startSolo, again:false});
+  }
+}
+
+/* ---------- the night ---------- */
+function updateHunt(dt){
+  const auth = game.kind === 'solo' || NET.isHost, G = world.giant;
+  if (auth) game.clock += dt; else game.clock = netClock();
+  const k = huntStage();
+  if (k !== G.stage) { const up = k > G.stage; G.stage = k; G.sz = giantSize(k); G.sp = giantSpeed(k); if (up && game.clock > 1) giantGrew(G); }
+  if (me.ent && me.role === 'guard' && me.ent.ctrl === 'me') updateMyGuard(dt);
+  for (const g of world.guards) if (g.ctrl === 'net' || g.ctrl === 'mirror') lerpEnt(g, dt);
+  for (const g of world.guards) { if (g.prevA != null && dt > 0) g.av = g.av*.6 + .4*wrap(g.angle - g.prevA)/dt; else g.av = 0; g.prevA = g.angle; }
+  if (G.ctrl === 'net' || G.ctrl === 'mirror') { lerpEnt(G, dt); G.wob = G.hs === 1; }
+  if (game.clock >= 0) {
+    if (G.ctrl === 'me') updateGiant(G, dt, true);
+    if (auth) {
+      world.hfT -= dt; if (world.hfT <= 0 || !world.hf) { world.hf = huntField(cellOf(G)); world.hfT = .3; }
+      for (const g of world.guards) if (g.ctrl === 'ai') updateHuntGuard(g, dt);
+      if (G.ctrl === 'bot') updateGiant(G, dt, false);
+    }
+  } else { G.moving = false; for (const g of world.guards) if (g.ctrl === 'ai') g.moving = false; }
+  G.ls = G.hs === 1 ? G.ls + dt : 0;
+  // its footsteps: a thud you hear and a ring you can see in the dark
+  if (G.moving && !G.gone) { G.stepT -= dt*(G.hs === 2 ? 1.5 : 1); if (G.stepT <= 0) { G.stepT = .52; G.rings.push({x:G.x, y:G.y, t:0}); stompSound(G); } }
+  for (const r of G.rings) r.t += dt;
+  while (G.rings.length && G.rings[0].t > .9) G.rings.shift();
+  if (game.clock >= 0 && game.mode === 'play') {
+    for (const g of world.guards) if (!g.out && (g.ctrl === 'me' || (auth && g.ctrl === 'ai')) && giantGrabs(G, g)) guardCaught(g);
+  }
+  if (me.role === 'guard' && me.ent && !me.ent.out && G.hs === 1 && giantInLight(me.ent, G)) hintOnce('hfreeze', 'Your light froze the giant! It only lasts a moment, so back away!', 3200);
+  if (game.mode !== 'play') return;
+  if (game.kind === 'solo') {
+    const over = me.role === 'guard' ? me.ent.out : world.guards.every(g => g.out);
+    if (over) { game.huntEnd += dt; if (game.huntEnd > (me.role === 'guard' ? 1.8 : 1.2)) endHuntSolo(); }
+  } else if (auth && world.guards.length && world.guards.every(g => g.out)) hostEndNight({w:'x', why:'all'});
+}
+function stompSound(G){
+  let v = .35;
+  if (me.role === 'guard' && me.ent) v = clamp(1 - dist(me.ent, G)/720, 0, 1);
+  else if (me.role !== 'giant') v = .25;
+  v *= .55 + .06*G.stage;
+  if (v > .03) SFX.stomp(Math.min(1.1, v));
+}
+function giantInLight(g, G){ return !g.out && !(g.off > 0) && (guardSees(g, G.x, G.y) || guardSees(g, G.x, G.y - 15*G.sz)); }
+function giantLitBy(G){ for (const g of world.guards) if (giantInLight(g, G)) return g; return null; }
+const giantGrabs = (G, g) => !G.gone && G.hs !== 1 && !(G.munch > 0) && game.clock >= 0 && dist(G, g) < giantReach(G);
+function updateGiant(e, dt, mine){
+  e.t += dt;
+  if (e.rage > 0) e.rage -= dt;
+  if (e.munch > 0) { e.munch -= dt; e.moving = false; e.wob = false; e.hs = e.rage > 0 ? 2 : 0; return; }
+  const lit = e.rage > 0 ? null : giantLitBy(e);
+  e.lit = lit;
+  if (lit) {
+    if (e.hs !== 1) { e.hs = 1; setPose(e, randomPose(e.kind, e.pz)); SFX.zap(); if (lit.ctrl === 'ai' && !lit.bubble) { lit.bubble = '?'; lit.bubbleT = .9; lit.state = 'alert'; } }
+    e.strain += dt; e.moving = false; e.wob = true; e.running = false;
+    if (e.strain >= giantHold(e.stage)) breakOut(e);
+    return;
+  }
+  e.wob = false; e.strain = Math.max(0, e.strain - dt*.2);
+  e.hs = e.rage > 0 ? 2 : 0;
+  let ix = 0, iy = 0;
+  if (mine) { const r = readInput(); ix = r.x; iy = r.y; }
+  else [ix, iy] = giantSteer(e, dt);
+  if (ix || iy) {
+    const sp = e.sp*(e.rage > 0 ? 1.45 : 1), px = e.x, py = e.y;
+    e.x += ix*sp*dt; e.y += iy*sp*dt; collide(e, giantR(e));
+    if (blocks(Math.floor(e.x/T), Math.floor(e.y/T))) { e.x = px; e.y = py; }
+    e.phase += Math.hypot(e.x - px, e.y - py)*.36/e.sz + dt*2;
+    e.moving = true; if (Math.abs(ix) > .2) e.face = ix > 0 ? 1 : -1;
+  } else e.moving = false;
+}
+function breakOut(e){
+  e.strain = 0; e.rage = giantRage(e.stage); e.hs = 2; e.wob = false;
+  breakFx(e);
+}
+function breakFx(e){
+  SFX.roar(); game.shake = Math.max(game.shake || 0, .55);
+  burst(e.x, e.y - 18*e.sz, '#ff4d5e', 18);
+  if (me.role === 'guard') hintOnce('hbreak', 'It broke out of the light! Lights can\'t stop it for a moment. Run!', 3000);
+  else if (me.role === 'giant') hintOnce('hbreakG', 'You broke free! Lights can\'t stop you for a moment. Charge!', 3000);
+}
+function giantGrew(G){
+  SFX.grow(); burst(G.x, G.y - 20*G.sz, '#ff6b7a', 14); game.shake = Math.max(game.shake || 0, .3);
+  if (me.role === 'giant') hint(`You grew! Size ${G.stage + 1}. Bigger, faster and harder to hold in the light.`, 2200);
+  else if (me.role === 'guard' && me.ent && !me.ent.out) hint(`The giant grew! Size ${G.stage + 1}. It's faster now.`, 2000);
+}
+// The giant heads for whichever guard it can reach fastest.
+function giantSteer(e, dt){
+  e.pathT -= dt;
+  if (!e.path || e.pathT <= 0 || !e.prey || e.prey.out) {
+    const F = world.hf || huntField(cellOf(e)), W = world.W;
+    let best = null, bd = 1e9;
+    for (const g of world.guards) { if (g.out) continue; const [cx, cy] = cellOf(g), d = F[cy*W + cx], sc = (d < 0 ? 999 : d) - (g === e.prey ? 1.5 : 0); if (sc < bd) { bd = sc; best = g; } }
+    e.prey = best; e.path = best ? (bfsPath(cellOf(e), cellOf(best)) || []) : []; e.pathT = .4;
+  }
+  const p = e.prey; if (!p) return [0, 0];
+  while (e.path.length && Math.hypot(e.path[0].x - e.x, e.path[0].y - e.y) < 8) e.path.shift();
+  const wp = (e.path.length > 1 || dist(e, p) > 60) && e.path.length ? e.path[0] : p;
+  const dx = wp.x - e.x, dy = wp.y - e.y, d = Math.hypot(dx, dy);
+  return d < 2 ? [0, 0] : [dx/d, dy/d];
+}
+// Bot guards: sweep their lights around, run when they see or hear the giant, and keep their light on it while backing away.
+function updateHuntGuard(g, dt){
+  g.t += dt;
+  if (g.bubbleT > 0) { g.bubbleT -= dt; if (g.bubbleT <= 0) { g.bubble = null; g.state = 'walk'; } }
+  if (g.out) { g.moving = false; return; }
+  const G = world.giant, d = dist(g, G) || 1;
+  const see = !!giantLitBy(G) || d < 90 || (d < 300 && castRay(g.x, g.y, (G.x - g.x)/d, (G.y - g.y)/d, d) >= d - 3);
+  if (see || (G.moving && d < 340 && Math.random() < dt*1.0)) {
+    if (!g.aware) { g.aware = true; g.react = .4 + Math.random()*.5; if (!g.bubble) { g.bubble = '?'; g.bubbleT = .9; g.state = 'alert'; } }
+    g.seenAt = game.clock; g.seen = {x:G.x, y:G.y};
+  } else if (g.aware && game.clock - g.seenAt > 3.5) g.aware = false;
+  if (g.react > 0) g.react -= dt;
+  const alert = g.aware && g.react <= 0;
+  g.panic = Math.max(0, g.panic - dt);
+  if (alert && g.panic <= 0 && Math.random() < dt*.18) g.panic = .4 + Math.random()*.6;   // a moment of panic: looks the wrong way
+  if (alert && g.panic <= 0 && g.seen) {
+    g.jit = (g.jit + (Math.random() - .5)*dt*1.4)*.96;
+    const tx = see ? G.x : g.seen.x, ty = (see ? G.y : g.seen.y) - 14*G.sz;
+    g.target = Math.atan2(ty - g.y, tx - g.x) + g.jit;
+  } else if (alert) g.target = g.heading;
+  else g.target = g.heading + Math.sin(g.t*1.3 + g.seed)*.95;
+  g.repath -= dt;
+  if (alert ? (g.repath <= 0 || !g.path) : (!g.path || !g.path.length)) {
+    g.repath = .5 + Math.random()*.3;
+    const goal = alert ? fleeCell(g) : wanderCell(g);
+    g.path = goal ? (bfsPath(cellOf(g), goal) || []) : [];
+  }
+  while (g.path.length && Math.hypot(g.path[0].x - g.x, g.path[0].y - g.y) < 6) g.path.shift();
+  const wp = g.path[0];
+  if (wp) {
+    const dx = wp.x - g.x, dy = wp.y - g.y, dd = Math.hypot(dx, dy) || 1, step = Math.min(dd, HUNT_BOT_SPEED*(alert ? 1 : .6)*dt);
+    g.x += dx/dd*step; g.y += dy/dd*step; collide(g, 12); g.phase += step*.2; g.heading = Math.atan2(dy, dx); g.moving = true;
+  } else g.moving = false;
+  g.angle = approach(g.angle, g.target, GUARD_TURN*dt);
+}
+// Somewhere far from the giant that the guard can reach without running past it.
+function fleeCell(g){
+  const F = world.hf; if (!F) return null;
+  const W = world.W, [gx, gy] = cellOf(g), D = bfsDist(gx, gy, 12), here = F[gy*W + gx];
+  let best = -1, bs = -1e9;
+  for (let i = 0; i < D.length; i++) {
+    const dg = D[i], f = F[i]; if (dg < 1 || f < 0) continue;
+    if (f - dg < here - 2) continue;
+    const s = f + .35*openAt(i) - .2*dg + Math.random()*1.2;
+    if (s > bs) { bs = s; best = i; }
+  }
+  return best < 0 ? null : [best % W, (best - best % W)/W];
+}
+function wanderCell(g){
+  const F = world.hf, W = world.W, H = world.H, here = cellOf(g);
+  for (let k = 0; k < 30; k++) {
+    const x = 1 + Math.floor(Math.random()*(W - 2)), y = 1 + Math.floor(Math.random()*(H - 2));
+    if (blocks(x, y) || Math.abs(x - here[0]) + Math.abs(y - here[1]) < 5) continue;
+    if (F && F[y*W + x] >= 0 && F[y*W + x] < 7 && k < 25) continue;
+    return [x, y];
+  }
+  return null;
+}
+function guardCaught(g){
+  g.out = true; g.ot = Math.max(0, game.clock); g.moving = false; g.bubble = null; g.path = null;
+  guardOutFx(g);
+}
+function guardOutFx(g){
+  const G = world.giant, left = world.guards.filter(x => !x.out).length;
+  burst(g.x, g.y - 14, '#d4475f', 16);
+  if (G && (G.ctrl === 'me' || G.ctrl === 'bot')) { G.munch = .9; G.prey = null; G.path = null; }
+  if (g === me.ent) { game.flash = 1; SFX.caught(); hint(`The giant got you! You lasted ${mmss(g.ot)}.`, 3200); }
+  else if (me.role === 'giant') { SFX.gotcha(); hint(left ? `You got ${g.name || 'a guard'}! ${left} to go.` : `You got ${g.name || 'the last guard'}!`, 1800); }
+  else { SFX.caught(); hint(`The giant got ${g.name || 'a guard'}! ${left} ${left === 1 ? 'guard' : 'guards'} left.`, 2000); }
+  updateHUD(true);
+}
+function applyGuardOut(g, o, ot){
+  if (!o || g.out) return;
+  g.out = true; g.ot = Number.isFinite(ot) ? ot/10 : Math.max(0, game.clock); g.moving = false; g.bubble = null;
+  guardOutFx(g);
+}
+// Giant state from the network: [x, y, state, face, moving, pose] (x and y already in this screen's layout)
+function applyGiant(G, s){
+  G.tx = s[0]; G.ty = s[1];
+  const prev = G.hs; G.hs = clamp(s[2] | 0, 0, 2);
+  if (prev !== 1 && G.hs === 1) SFX.zap();
+  if (prev === 1 && G.hs === 2) breakFx(G);
+  G.moving = !!s[4]; G.wob = G.hs === 1; G.face = s[3] === -1 ? -1 : 1;
+  if (Number.isInteger(s[5]) && s[5] !== G.pz) setPose(G, s[5]);
+}
+function huntCamTarget(){
+  const m = me.ent, G = world.giant;
+  if (m && !(me.role === 'guard' && m.out)) return {x:m.x, y:m.y - (me.role === 'giant' ? 10*m.sz : 10)};
+  // watching: stay with one guard until the giant catches them
+  if (!world.spec || world.spec.out) {
+    let best = null, bd = 1e9;
+    for (const g of world.guards) { if (g.out) continue; const d = dist(g, G); if (d < bd) { bd = d; best = g; } }
+    world.spec = best;
+  }
+  const s = world.spec;
+  return s ? {x:s.x, y:s.y - 10} : {x:G.x, y:G.y - 10*G.sz};
+}
+// A camera that follows you around the big map (it's too big to fit on a phone).
+function huntView(s0, W, H, top, bot, pad, ww, wh){
+  const vh = H - top - bot, tiles = me.role === 'giant' ? 13 : 11;
+  const s = Math.max(s0, Math.min(W, vh)/(tiles*T));
+  const t = huntCamTarget();
+  let C = world.cam;
+  if (!C || Math.hypot(t.x - C.x, t.y - C.y) > 600) C = world.cam = {x:t.x, y:t.y};
+  C.x += (t.x - C.x)*.14; C.y += (t.y - C.y)*.14;
+  const mw = ww*s, mh = world.H*T*s;
+  let ox = W/2 - C.x*s, oy = top + vh/2 - C.y*s;
+  ox = mw <= W - 2*pad ? (W - mw)/2 : clamp(ox, W - pad - mw, pad);
+  oy = mh + WALL_H*s <= vh - 2*pad ? top + (vh - mh - WALL_H*s)/2 + WALL_H*s : clamp(oy, top + vh - pad - mh, top + pad + WALL_H*s);
+  view = {s, ox, oy};
+}
+// The giant's eyes glow red in the dark, so you can see it coming.
+function giantEyes(G){
+  if (G.kind === 'dino') { const f = G.face || 1; return [[G.x + 12.1*G.sz*f, G.y - 29.6*G.sz]]; }
+  const y = G.y - (G.kind === 'knight' ? 30.9 : 30.2)*G.sz;
+  return [[G.x - 2.3*G.sz, y], [G.x + 2.3*G.sz, y]];
+}
+function drawGiantEyes(c, gv, mine){
+  const G = world.giant; if (!G || G.gone) return;
+  let a = 1;
+  if (gv && mine) {
+    const d = dist(mine, G) || 1;
+    if (!(d < 26*G.sz || giantLitBy(G))) a = castRay(mine.x, mine.y, (G.x - mine.x)/d, (G.y - mine.y)/d, d) >= d - 3 ? clamp(1 - (d - 140)/330, 0, 1) : 0;
+  }
+  if (world.demo) a = .8;
+  else if (game.clock < 0) a *= .25;
+  if (G.hs === 1) a *= .55 + .45*Math.abs(Math.sin(game.t*22));
+  if (a <= .01) return;
+  const hot = G.hs === 2 ? 1.6 : 1, r = 7*G.sz*hot;
+  c.globalCompositeOperation = 'lighter';
+  for (const [x, y] of giantEyes(G)) {
+    const gr = c.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(255,60,80,${.6*a})`); gr.addColorStop(1, 'rgba(255,40,60,0)');
+    c.fillStyle = gr; c.fillRect(x - r, y - r, 2*r, 2*r);
+  }
+  c.globalCompositeOperation = 'source-over';
+  c.fillStyle = G.hs === 2 ? `rgba(255,214,214,${a})` : `rgba(255,52,72,${a})`;
+  for (const [x, y] of giantEyes(G)) { c.beginPath(); c.arc(x, y, 1.25*G.sz, 0, 7); c.fill(); }
+}
+function drawHuntExtras(c, gv, mine){
+  const G = world.giant; if (!G || G.gone) return;
+  // how long until it breaks out of the light
+  if (G.hs === 1 && (!gv || giantLitBy(G))) {
+    const own = G.ctrl === 'me' || G.ctrl === 'bot', f = clamp((own ? G.strain : G.ls)/giantHold(G.stage), 0, 1);
+    const x = G.x, y = G.y - 40*G.sz - 8, r = 7;
+    c.lineWidth = 3; c.strokeStyle = 'rgba(8,11,28,.75)'; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
+    c.strokeStyle = f > .7 ? '#ff6b7a' : '#cfe8ff'; c.beginPath(); c.arc(x, y, r, -Math.PI/2, -Math.PI/2 + f*Math.PI*2); c.stroke();
+  }
+  for (const g of world.guards) if (g !== mine && g.name) drawName(c, g.x, g.y - 44, g.name + (g.out ? ' · caught' : ''), g.out ? '#a7a9c5' : '#ffd97e');
+}
+// Screen-edge pointers: the giant sees where the guards are; a guard sees a red glow from the side the giant is coming from.
+function drawHuntPointers(c, W, H, gv, mine){
+  const G = world.giant; if (!G || !mine || world.demo || !inNight()) return;
+  const m = 26*dpr, top = vInset.top + m, bot = H - vInset.bot - m;
+  const scr = p => [p.x*view.s + view.ox, p.y*view.s + view.oy];
+  const edge = (x, y) => { const cx = W/2, cy = (top + bot)/2, dx = x - cx, dy = y - cy; const k = Math.min(Math.abs((W/2 - m)/(dx || 1e-6)), Math.abs(((bot - top)/2)/(dy || 1e-6))); return [cx + dx*k, cy + dy*k, Math.atan2(dy, dx)]; };
+  const off = (x, y) => x < m || x > W - m || y < top || y > bot;
+  if (me.role === 'giant') {
+    for (const g of world.guards) {
+      if (g.out) continue; const [x, y] = scr(g); if (!off(x, y)) continue;
+      const [ex, ey, a] = edge(x, y);
+      c.save(); c.translate(ex, ey); c.rotate(a); c.fillStyle = 'rgba(255,217,126,.9)'; c.strokeStyle = 'rgba(8,11,28,.8)'; c.lineWidth = 2*dpr;
+      c.beginPath(); c.moveTo(9*dpr, 0); c.lineTo(-6*dpr, -7*dpr); c.lineTo(-6*dpr, 7*dpr); c.closePath(); c.stroke(); c.fill(); c.restore();
+    }
+  } else if (me.role === 'guard' && !mine.out) {
+    const [x, y] = scr({x:G.x, y:G.y - 14*G.sz}), d = dist(mine, G);
+    if (!off(x, y) || d > 640) return;
+    const [ex, ey] = edge(x, y), a = clamp(1 - d/640, 0, 1)*.55, r = 90*dpr;
+    const gr = c.createRadialGradient(ex, ey, 0, ex, ey, r);
+    gr.addColorStop(0, `rgba(220,40,60,${a})`); gr.addColorStop(1, 'rgba(220,40,60,0)');
+    c.fillStyle = gr; c.fillRect(ex - r, ey - r, 2*r, 2*r);
+  }
+}
+function drawGiantRings(c, gv, mine){
+  const G = world.giant; if (!G || G.gone || !G.rings.length) return;
+  const d = mine ? dist(mine, G) : 0; if (gv && d > 560) return;
+  const k = gv ? clamp(1 - d/560, 0, 1) : .55;
+  c.lineWidth = 2.2;
+  for (const rg of G.rings) { c.strokeStyle = `rgba(255,110,120,${.5*k*(1 - rg.t/.9)})`; const rad = 10*G.sz + rg.t*170; c.beginPath(); c.ellipse(rg.x, rg.y, rad, rad*.5, 0, 0, 7); c.stroke(); }
+}
+function updateHuntHUD(force){
+  const c = game.clock < 0 ? 'Get ready' : mmss(game.clock);
+  if (force || hudCache.c !== c) { $('hudClock').textContent = c; hudCache.c = c; }
+  const z = `Size ${huntStage() + 1}`;
+  if (force || hudCache.z !== z) { $('hudSizeT').textContent = z; hudCache.z = z; }
+  if (force || hudCache.h !== -1) { $('hudLives').hidden = true; hudCache.h = -1; }
+  const n = world.guards.filter(g => !g.out).length, left = `${n} ${n === 1 ? 'guard' : 'guards'} left`;
+  if (force || hudCache.l !== left) { const el = $('hudLeft'); el.hidden = false; el.innerHTML = EYE + `<span>${left}</span>`; el.title = 'Night guards still in'; hudCache.l = left; }
+  const room = game.kind === 'room' && NET.code ? `Room ${NET.code} · ${roomPeerList().length}` : '';
+  if (force || hudCache.r !== room) { $('hudRoom').hidden = !room; $('hudRoom').textContent = room; hudCache.r = room; }
+  $('dawnDot').style.left = (huntStage() >= HUNT.maxStage ? 100 : (Math.max(0, game.clock) % HUNT.grow)/HUNT.grow*100) + '%';
+}
+function huntCard(guard){
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'night hunt-card'; b.setAttribute('aria-pressed', 'true');
+  const best = guard ? save.bestH : save.bestHG, s = guard ? save.starH : save.starHG;
+  b.innerHTML = `<span class="night-no">!</span><span class="night-body"><span class="night-name"></span><span class="night-meta"></span></span><span class="night-stars" aria-label="${s} of 3 stars">${'★'.repeat(s)}<span class="off">${'★'.repeat(3 - s)}</span></span>`;
+  b.querySelector('.night-name').textContent = HUNT.name;
+  b.querySelector('.night-meta').textContent = (guard ? 'You and 3 bot guards vs a growing giant' : 'You vs 4 night guards') + ' · ' + (best ? (guard ? `Best: lasted ${mmss(best)}` : `Best: ${mmss(best)}`) : 'No best time yet');
+  b.addEventListener('click', () => { audioInit(); openHuntIntro(); });
+  return b;
+}
+
+/* ---------- Huntdown in online rooms ----------
+   Whoever picks "The giant" first is the giant (or a bot giant if nobody does). Everyone else is a
+   night guard, plus any bot guards. Each guard tells the room when the giant catches them. */
+const HUNT_ROOM_TIP = '<b>Huntdown:</b> The first player who picks "The giant" is the giant. If nobody does, a bot giant hunts you. Everyone else is a night guard. A flashlight freezes the giant for a moment, then it breaks free. It grows every 20 seconds. The last guard standing wins.';
+function roomDemo(){ if (NET.cfg.md === 'h') demoHunt(); else demoWorld(NET.cfg.nt); NET.demoKey = NET.cfg.md + NET.cfg.nt; }
+function hostStartHunt(list){
+  const pick = list.find(x => x.p.ro !== 'g'), giant = pick ? pick.id : '#G';
+  const gH = list.filter(x => x.id !== giant).map(x => x.id).slice(0, 8);
+  let bots = NET.cfg.bt; if (gH.length + bots < 2) bots = 3 - Math.min(1, gH.length);
+  const g = gH.concat(Array(Math.max(0, Math.min(bots, 8 - gH.length))).fill(null));
+  NET.ep = (NET.ep | 0) + 1; NET.ph = 'play'; NET.res = null; NET.ro = {g, e:[giant]};
+  startRoomNight({ep:NET.ep, ph:'play', nt:NET.cfg.nt, bt:NET.cfg.bt, md:'h', t:-30, ro:NET.ro}); sendPres(true);
+}
+function startRoomHunt(H){
+  game.ep = H.ep; game.night = 0; game.kind = 'room'; game.rules = 'hunt'; game.endShown = -1;
+  buildHuntWorld();
+  const myId = NET.myId, ro = H.ro || {g:[], e:[]};
+  me.role = null; me.ent = null;
+  world.guards = (ro.g || []).slice(0, 8).map((owner, slot) => {
+    if (owner && owner === myId) { const g = makeHuntGuard(slot, 'me', owner, myName(), save.lookG); me.role = 'guard'; me.ent = g; return g; }
+    if (owner) { const pr = NET.peers.get(owner); return makeHuntGuard(slot, 'net', owner, cleanName(pr && pr.n), {hat:pr && pr.ht, jew:pr && pr.jw}); }
+    return makeHuntGuard(slot, NET.isHost ? 'ai' : 'mirror', 'ai' + slot, BOT_GUARDS[slot % BOT_GUARDS.length], huntBotLook(slot));
+  });
+  const gid = ro.e && ro.e[0];
+  let G;
+  if (gid && gid === myId) { G = makeGiant({id:gid, ctrl:'me', kind:save.exhibit, name:myName(), look:save.lookEx}); me.role = 'giant'; me.ent = G; }
+  else if (gid && gid[0] !== '#') { const pr = NET.peers.get(gid); G = makeGiant({id:gid, ctrl:'net', kind:EX_IDS.includes(pr && pr.k) ? pr.k : 'statue', name:cleanName(pr && pr.n), look:{hat:pr && pr.ht, jew:pr && pr.jw}}); }
+  else G = makeGiant({id:'#G', ctrl:NET.isHost ? 'bot' : 'mirror', kind:EX_IDS[(H.ep | 0) % EX_IDS.length], name:'The giant'});
+  world.exhibits = [G]; world.giant = G;
+  for (const x of [...world.guards, G]) if (x.ctrl === 'net' || x.ctrl === 'mirror') { x.tx = x.x; x.ty = x.y; if (x.kind === 'guard') x.ta = x.angle; }
+  game.clock = typeof H.t === 'number' ? H.t/10 : -3; NET.clockBase = game.clock; NET.clockAt = performance.now();
+  particles.length = 0; checkOrientation();
+  Object.assign(game, {mode:'play', catches:0, needRelease:false, caughtBy:null, flash:0, huntEnd:0});
+  stick.active = aimStick.active = false;
+  setHudHunt(); $('hud').hidden = false; showPanel(null); hideInvite(); updateHUD(true); audioInit(); frTickSoon();
+  syncNetEntities();
+  hint(!me.role ? "A hunt is already going. You can watch, and you'll join the next one." : me.role === 'giant' ? 'You are the giant! Catch every night guard. Their lights freeze you for a moment.' : 'Survive the giant! Keep your light on it and don\'t get cornered.', 3400);
+}
+function huntResult(){
+  const G = world.giant;
+  return {w:'x', why:'all', hunt:1, gn:G.ctrl === 'me' ? myName() : G.ctrl === 'net' ? G.name : 'The giant',
+    list:world.guards.map(g => [g.ctrl === 'me' ? myName() : (g.name || 'Guard'), Math.round((g.ot || 0)*10)]).sort((a, b) => b[1] - a[1])};
+}
+function showRoomHuntResult(res){
+  game.endShown = game.ep;
+  const list = Array.isArray(res.list) ? res.list.filter(r => Array.isArray(r)).slice(0, 8) : [];
+  const rank = list.map((r, i) => `${i + 1}. ${cleanName(r[0])} ${mmss((r[1] | 0)/10)}`).join(' · ');
+  const mine = me.role === 'guard' && me.ent ? Math.round((me.ent.ot || 0)*10) : -1;
+  const place = mine >= 0 ? 1 + list.filter(r => (r[1] | 0) > mine).length : 0;
+  const won = me.role === 'giant' || place === 1;
+  if (me.role) { if (won) SFX.win(); else SFX.lose(); }
+  showResult({kicker:`Room ${NET.code} · Huntdown`,
+    title: me.role === 'giant' ? 'You caught every guard!' : place === 1 ? 'You lasted the longest!' : `${cleanName(res.gn || 'The giant')} caught everyone!`,
+    lose: !!me.role && !won, stars:0,
+    text:(me.role === 'guard' ? `You lasted ${mmss(mine/10)} (place ${place} of ${list.length}). ` : '') + (rank ? `Longest: ${rank}.` : ''),
+    primary:'Back to the room', onPrimary:backToRoom, again:false, menuText:'Leave room', onMenu:() => leaveRoom(false)});
+}
+
+
 /* ---------- night loop ---------- */
 function updateNight(dt){
+  if (world.hunt) { updateHunt(dt); return; }
   const auth = game.kind === 'solo' || NET.isHost;
   if (auth) game.clock += dt; else game.clock = netClock();
   if (game.rules === 'solo' && game.clock >= world.L.duration) { endSolo(false, 'dawn'); return; }
@@ -2195,6 +2765,7 @@ function finishCaught(){
   hint(`Caught moving! Back to your pedestal. ${left} ${left === 1 ? 'chance' : 'chances'} left.`, 2800);
 }
 function startSolo(){
+  if (save.mode === 'hunt') { startHuntSolo(); return; }
   const i = game.night, guard = save.play === 'guard';
   game.kind = 'solo'; game.rules = guard ? 'team' : 'solo';
   const nb = guard ? SOLO_BOTS[i] : 1;
@@ -2214,7 +2785,7 @@ function startSolo(){
   if (guard) hint(say({touch:'You only see what your flashlight shows. Left thumb walks, right thumb aims.', keys:'You only see what your flashlight shows. WASD walks, the mouse aims.', pad:'You only see what your flashlight shows. Left stick walks, right stick aims.'}), 3800);
   else if (game.night === 0) hint(say({touch:'Drag anywhere to sneak. Let go to freeze!', keys:'Move with WASD or the arrow keys. Let go to freeze!', pad:'Sneak with the left stick. Let go to freeze!'}), 3600);
 }
-function setHudNight(){ $('hudKicker').textContent = `Night ${ROMAN[game.night]}${me.role === 'guard' ? ' · Guard' : ''}`; $('hudName').textContent = LEVELS[game.night].name; }
+function setHudNight(){ $('hudGemStat').hidden = false; $('hudSize').hidden = true; $('hudClockStat').title = 'Time until sunrise at 6:00 AM'; $('hudLeft').title = 'Exhibits still sneaking around'; $('hudKicker').textContent = `Night ${ROMAN[game.night]}${me.role === 'guard' ? ' · Guard' : ''}`; $('hudName').textContent = LEVELS[game.night].name; }
 function togglePause(){
   if (game.kind === 'room') {
     if (panels.pause.hidden) { showPanel('pause'); setPauseText(); } else showPanel(null);
@@ -2287,6 +2858,7 @@ const EYE = '<svg width="16" height="12" viewBox="0 0 24 16" aria-hidden="true">
 const hudCache = {};
 function updateHUD(force){
   if (!world || world.demo) return;
+  if (world.hunt) { updateHuntHUD(force); return; }
   const dur = world.L.duration, c = game.clock < 0 ? 'Get ready' : clockStr(game.clock, dur), g = `${gemsFound()}/${world.gems.length}`;
   if (force || hudCache.c !== c) { $('hudClock').textContent = c; hudCache.c = c; }
   if (force || hudCache.g !== g) { $('hudGems').textContent = g; hudCache.g = g; }
@@ -2329,11 +2901,13 @@ function render(){
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   ctx.fillStyle = '#080b1c'; ctx.fillRect(0, 0, W, H);
   if (!world || !W || !H) return;
-  fit(); wt(ctx);
-  const live = !world.demo, mine = me.ent;
-  const gv = live && me.role === 'guard' && mine;
+  fit();
+  if (game.shake > 0 && !reduceMotion && !world.demo) { view.ox += (Math.random() - .5)*game.shake*16*dpr; view.oy += (Math.random() - .5)*game.shake*16*dpr; }
+  wt(ctx);
+  const live = !world.demo, mine = me.ent, hunt = !!world.hunt, GI = world.giant;
+  const gv = live && me.role === 'guard' && mine && !(hunt && mine.out);
   for (const g of world.guards) conePoly(g);
-  const visEx = e => !e.gone && (!gv || dist(e, mine) < 46 || anySees(e.x, e.y));
+  const visEx = e => !e.gone && (!gv || (e.big ? (dist(e, mine) < 26*e.sz || !!giantLitBy(e)) : (dist(e, mine) < 46 || anySees(e.x, e.y))));
   const visGem = gm => !gm.got && !gm.carrier && (!gv || dist(gm, mine) < 46 || anySees(gm.x, gm.y));
   drawFloor(ctx); if (!gv) drawMoons(ctx);
   const actors = world.guards.slice();
@@ -2351,7 +2925,7 @@ function render(){
   while (ai < actors.length) drawActor(actors[ai++]);
 
   for (const e of world.exhibits) {
-    if (e.gone || !e.rings.length || (gv && dist(e, mine) > HEAR*1.7)) continue;
+    if (e.big || e.gone || !e.rings.length || (gv && dist(e, mine) > HEAR*1.7)) continue;
     for (const rg of e.rings) {
       ctx.strokeStyle = `rgba(236,232,221,${(gv ? .55 : .32)*(1 - rg.t/.7)})`; ctx.lineWidth = gv ? 2 : 1.5;
       const rad = 12 + rg.t*150; ctx.beginPath(); ctx.ellipse(rg.x, rg.y, rad, rad*.5, 0, 0, 7); ctx.stroke();
@@ -2372,12 +2946,14 @@ function render(){
     }
     hole(g.x, g.y - 14, 34, gv ? .7 : .55);
   }
+  if (hunt && GI && !GI.gone && giantLitBy(GI)) hole(GI.x, GI.y - 16*GI.sz, 22*GI.sz, .85);
   if (gv) hole(mine.x, mine.y - 8, 56, .6);
   else {
     for (const m of world.moons) hole(m.x, m.y, T*1.1, .32);
     for (const gm of world.gems) if (!gm.got && !gm.carrier) hole(gm.x, gm.y - 10, 30, .6);
     for (const p of world.peds) hole(p.x, p.y - 6, game.rules === 'solo' && allFound ? 50 : 26, .45);
     if (live && me.role === 'ex' && mine) hole(mine.x, mine.y - 14, 46, .5);
+    if (live && me.role === 'giant' && mine) hole(mine.x, mine.y - 14*mine.sz, 24*mine.sz, .5);
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(dark, 0, 0);
   wt(ctx);
@@ -2392,7 +2968,8 @@ function render(){
   for (const g of world.guards) {
     if (!g.poly.length) continue;
     const hot = g.state === 'inspect' || g.state === 'alert', red = game.mode === 'caught' && game.caughtBy === g;
-    const col = red ? '255,110,120' : '255,214,122';
+    const hold = hunt && GI && GI.hs === 1 && giantInLight(g, GI);
+    const col = red ? '255,110,120' : hold ? '205,232,255' : '255,214,122';
     const gr = ctx.createRadialGradient(g.x, g.y, 0, g.x, g.y, g.range);
     gr.addColorStop(0, `rgba(${col},${hot || red ? .34 : .26})`); gr.addColorStop(.7, `rgba(${col},.11)`); gr.addColorStop(1, `rgba(${col},0)`);
     ctx.fillStyle = gr; coneTo(ctx, g); ctx.fill();
@@ -2402,6 +2979,7 @@ function render(){
     gr.addColorStop(0, gm.color + '66'); gr.addColorStop(1, gm.color + '00'); ctx.fillStyle = gr; ctx.fillRect(gm.x - 18, y - 18, 36, 36);
   }
   ctx.globalCompositeOperation = 'source-over';
+  if (hunt) { drawGiantRings(ctx, gv, mine); drawGiantEyes(ctx, gv, mine); if (live) drawHuntExtras(ctx, gv, mine); }
 
   for (const e of world.exhibits) {
     if (e.gone || e.cg < 0 || !world.gems[e.cg] || world.gems[e.cg].got) continue;
@@ -2425,7 +3003,7 @@ function render(){
     const x = mine.x + 9, y = mine.y - 36 + Math.sin(game.t*6);
     ctx.fillStyle = '#9fd8ff'; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.quadraticCurveTo(x + 3, y + 1, x, y + 2); ctx.quadraticCurveTo(x - 3, y + 1, x, y - 4); ctx.fill();
   }
-  if (live && game.kind === 'room') {
+  if (live && game.kind === 'room' && !hunt) {
     for (const e of world.exhibits) if (e.ctrl === 'net' && visEx(e)) drawName(ctx, e.x, e.y - 40, e.name + (e.out ? ' · out' : ''), '#64e3d1');
     for (const g of world.guards) if (g.ctrl === 'net') drawName(ctx, g.x, g.y - 44, g.name, '#ffd97e');
   }
@@ -2441,6 +3019,7 @@ function render(){
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (hunt && live) drawHuntPointers(ctx, W, H, gv, mine);
   if (live && inNight() && game.clock < 0) {
     const n = Math.ceil(-game.clock);
     ctx.fillStyle = 'rgba(8,11,28,.55)'; ctx.fillRect(0, H/2 - 46*dpr, W, 92*dpr);
@@ -2448,7 +3027,7 @@ function render(){
     ctx.font = `800 ${34*dpr}px Cinzel, Georgia, serif`; ctx.fillStyle = '#ece8dd';
     ctx.fillText(`Lights out in ${n}`, W/2, H/2 - 6*dpr);
     ctx.font = `500 ${13*dpr}px Fredoka, sans-serif`; ctx.fillStyle = '#a7a9c5';
-    ctx.fillText(me.role === 'guard' ? 'You are a night guard' : me.role === 'ex' ? `You are the ${exName(save.exhibit).toLowerCase()}` : 'You are watching this night', W/2, H/2 + 26*dpr);
+    ctx.fillText(me.role === 'giant' ? 'You are the giant' : me.role === 'guard' ? 'You are a night guard' : me.role === 'ex' ? `You are the ${exName(save.exhibit).toLowerCase()}` : 'You are watching this night', W/2, H/2 + 26*dpr);
   }
   if (inNight()) for (const s of [stick, aimStick]) {
     if (!s.active) continue;
@@ -2462,7 +3041,7 @@ function render(){
     ctx.beginPath(); ctx.arc(ox + dx*dpr, oy + dy*dpr, 15*dpr, 0, 7); ctx.fill();
     if (m > STICK_R*.18) {
       ctx.font = `600 ${11*dpr}px Fredoka, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(236,232,221,.8)'; ctx.fillText(aim ? 'aim' : me.role === 'guard' ? 'walk' : tipping ? 'tiptoe' : 'run', ox, oy + R + 6*dpr);
+      ctx.fillStyle = 'rgba(236,232,221,.8)'; ctx.fillText(aim ? 'aim' : me.role === 'guard' ? 'walk' : me.role === 'giant' ? 'stomp' : tipping ? 'tiptoe' : 'run', ox, oy + R + 6*dpr);
     }
   }
   if (gv && inNight() && touchy() && !stick.active && !aimStick.active && game.clock < 6) {
@@ -2486,6 +3065,7 @@ function drawGemAt(c, x, y, color, k){
 function drawActor(a){
   if (a.kind !== 'guard' && a.invuln > 0 && Math.floor(game.t*14) % 2) ctx.globalAlpha = .45;
   if (a.kind !== 'guard' && a.out) ctx.globalAlpha = .55;
+  if (a.kind === 'guard' && a.out) ctx.globalAlpha = .4;
   drawFigure(ctx, a, a.x, a.y);
   ctx.globalAlpha = 1;
 }
@@ -2494,9 +3074,12 @@ function drawActor(a){
 const previews = [];
 const unlocked = i => { const b = save.play === 'guard' ? save.bestG : save.best; return i === 0 || b[i-1] > 0; };
 function renderMenu(){
-  const guard = save.play === 'guard';
+  const hunt = save.mode === 'hunt', guard = hunt ? save.huntAs !== 'giant' : save.play === 'guard';
+  $('modeNights').setAttribute('aria-pressed', String(!hunt)); $('modeHunt').setAttribute('aria-pressed', String(hunt));
+  $('playEx').textContent = hunt ? 'The giant' : 'An exhibit'; $('playGuard').textContent = hunt ? 'A night guard' : 'The night guard';
   $('playEx').setAttribute('aria-pressed', String(!guard)); $('playGuard').setAttribute('aria-pressed', String(guard));
-  $('exhibitGroup').hidden = guard;
+  $('exhibitGroup').hidden = guard; $('exhibitLbl').textContent = hunt ? 'Choose your giant' : 'Choose your exhibit';
+  $('nightLbl').textContent = hunt ? 'Huntdown' : 'Pick a night';
   const list = $('exhibitList');
   if (!list.children.length) {
     for (const e of EXHIBITS) {
@@ -2511,6 +3094,7 @@ function renderMenu(){
   }
   for (const b of list.children) b.setAttribute('aria-pressed', String(b.dataset.id === save.exhibit));
   const nl = $('nightList'); nl.textContent = '';
+  if (hunt) { nl.append(huntCard(guard)); $('btnPlay').textContent = guard ? 'Start Huntdown' : 'Start the hunt'; syncSoundButtons(); renderFriends(); return; }
   const best = guard ? save.bestG : save.best;
   const firstOpen = best.findIndex(s => s === 0);
   if (game.sel == null || !unlocked(game.sel)) game.sel = firstOpen === -1 ? 0 : firstOpen;
@@ -2575,6 +3159,8 @@ function openMenu(){
   $('hud').hidden = true; showPanel('menu'); renderMenu(); frTickSoon();
 }
 function openIntro(i){
+  if (save.mode === 'hunt') { openHuntIntro(); return; }
+  $('introGemsLbl').textContent = 'Gems'; $('introSunLbl').textContent = 'Sunrise'; $('introSun').textContent = '6:00 AM';
   game.night = i; game.mode = 'intro';
   const L = LEVELS[i], guard = save.play === 'guard';
   demoWorld(i); me.role = guard ? 'guard' : 'ex';
@@ -2788,7 +3374,7 @@ function netFailText(e){
 
 /* ---------- online: rooms ---------- */
 const NET = {api:null, apiReady:false, kind:IN_CLAUDE ? 'room' : 'web', room:null, code:null, myId:null, joinedAt:0, peers:new Map(),
-  hostId:null, isHost:false, role:'e', cfg:{nt:0, bt:2}, ep:0, ph:'lobby', ro:null, res:null, H:null, clockBase:0, clockAt:0,
+  hostId:null, isHost:false, role:'e', cfg:{nt:0, bt:2, md:'n'}, ep:0, ph:'lobby', ro:null, res:null, H:null, clockBase:0, clockAt:0,
   unsubs:[], busy:false, sendT:0, electAt:0, checkT:0};
 function newCode(){ const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.floor(Math.random()*A.length)]; return s; }
 const netClock = () => NET.clockBase + Math.min(3, (performance.now() - NET.clockAt)/1000);
@@ -2903,12 +3489,12 @@ function becomeHost(){
   NET.isHost = true;
   const H = NET.H;
   if (H && H.ph === 'play' && game.kind === 'room' && world && !world.demo && game.ep === H.ep) {
-    NET.cfg = {nt:H.nt, bt:H.bt}; NET.ro = JSON.parse(JSON.stringify(H.ro)); NET.ep = H.ep; NET.ph = 'play'; NET.res = null;
+    NET.cfg = {nt:H.nt, bt:H.bt, md:H.md === 'h' ? 'h' : 'n'}; NET.ro = JSON.parse(JSON.stringify(H.ro)); NET.ep = H.ep; NET.ph = 'play'; NET.res = null;
     game.clock = netClock();
     world.guards.forEach((g, slot) => { if (g.ctrl === 'mirror') aiFromGuard(slot); });
     for (const e of world.exhibits) if (e.ctrl === 'mirror' && !e.gone) { e.ctrl = 'bot'; e.tx = e.ty = null; e.path = null; e.react = null; e.hold = .6; }
     hint("The host left, so you're running the room now.", 2600);
-  } else if (H) { NET.cfg = {nt:H.nt | 0, bt:H.bt ?? 2}; NET.ep = H.ep | 0; NET.ph = H.ph === 'play' ? 'lobby' : (H.ph || 'lobby'); NET.res = H.res || null; NET.ro = H.ro || null; }
+  } else if (H) { NET.cfg = {nt:H.nt | 0, bt:H.bt ?? 2, md:H.md === 'h' ? 'h' : 'n'}; NET.ep = H.ep | 0; NET.ph = H.ph === 'play' ? 'lobby' : (H.ph || 'lobby'); NET.res = H.res || null; NET.ro = H.ro || null; }
   else { NET.ep = 0; NET.ph = 'lobby'; NET.res = null; NET.ro = null; }
   sendPres(true);
   if (!panels.room.hidden) renderRoom();
@@ -2921,11 +3507,16 @@ function stepDown(){
   }
 }
 function toMirrorGuard(slot){
-  const old = world.guards[slot], m = Object.assign(makeAIGuard(slot), {ctrl:'mirror'});
+  const old = world.guards[slot], m = Object.assign(world.hunt ? makeHuntGuard(slot, 'mirror', 'ai' + slot, BOT_GUARDS[slot % BOT_GUARDS.length], huntBotLook(slot)) : makeAIGuard(slot), {ctrl:'mirror'});
   Object.assign(m, {x:old.x, y:old.y, angle:old.angle, tx:old.x, ty:old.y, ta:old.angle});
+  if (world.hunt) { m.out = !!old.out; m.ot = old.ot || 0; }
   world.guards[slot] = m;
 }
 function aiFromGuard(slot){
+  if (world.hunt) {
+    const old = world.guards[slot], a = makeHuntGuard(slot, 'ai', 'ai' + slot, BOT_GUARDS[slot % BOT_GUARDS.length], huntBotLook(slot));
+    Object.assign(a, {x:old.x, y:old.y, angle:old.angle, target:old.angle, out:!!old.out, ot:old.ot || 0}); world.guards[slot] = a; return;
+  }
   const old = world.guards[slot], a = makeAIGuard(slot);
   a.x = old.x; a.y = old.y; a.angle = a.target = old.angle;
   let best = 0, bd = 1e9; a.path.forEach((p, i) => { const d = dist(p, a); if (d < bd) { bd = d; best = i; } });
@@ -2934,7 +3525,11 @@ function aiFromGuard(slot){
 }
 function peerLeft(id){
   if (game.kind !== 'room' || !world || world.demo) return;
-  world.exhibits.forEach((e, i) => { if (e.id === id && e.ctrl === 'net') { e.gone = true; if (NET.isHost && NET.ro) NET.ro.e[i] = null; } });
+  world.exhibits.forEach((e, i) => {
+    if (e.id !== id || e.ctrl !== 'net') return;
+    if (e.big) { e.ctrl = NET.isHost ? 'bot' : 'mirror'; e.path = null; if (NET.isHost) { e.tx = e.ty = null; if (NET.ro) NET.ro.e[0] = '#G'; } return; }
+    e.gone = true; if (NET.isHost && NET.ro) NET.ro.e[i] = null;
+  });
   world.guards.forEach((g, slot) => {
     if (g.id !== id || g.ctrl !== 'net') return;
     if (NET.isHost) { aiFromGuard(slot); if (NET.ro) NET.ro.g[slot] = null; } else toMirrorGuard(slot);
@@ -2944,25 +3539,27 @@ function myPres(){
   const lk = NET.role === 'g' ? save.lookG : save.lookEx;
   const p = {g:'mad1', n:myName(), j:NET.joinedAt, ro:NET.role, k:save.exhibit, ep:game.ep, ht:lk.hat, jw:lk.jew};
   const e = me.ent, playing = game.kind === 'room' && world && !world.demo && e && game.ep && game.ep === (NET.isHost ? NET.ep : (NET.H && NET.H.ep));
-  const clear = ['x','y','m','rn','pz','f','c','o','cz','cb','cg','dg','a','w','off'];
+  const clear = ['x','y','m','rn','pz','f','c','o','cz','cb','cg','dg','a','w','off','hs','ot'];
   for (const k of clear) p[k] = null;
   if (playing) {
     const [x, y] = toNet(e.x, e.y); p.x = x; p.y = y;
     if (me.role === 'ex') Object.assign(p, {m:e.moving ? 1 : 0, rn:e.running ? 1 : 0, pz:e.pz, f:e.face, c:e.c, o:e.out ? 1 : 0, cz:e.cz, cb:e.cb, cg:e.cg, dg:[...e.dg]});
-    else Object.assign(p, {a:angToNet(e.angle), w:e.moving ? 1 : 0, off:e.off > 0 ? 1 : 0});
+    else if (me.role === 'giant') Object.assign(p, {m:e.moving ? 1 : 0, pz:e.pz, f:e.face, hs:e.hs});
+    else { Object.assign(p, {a:angToNet(e.angle), w:e.moving ? 1 : 0, off:e.off > 0 ? 1 : 0}); if (world.hunt) { p.o = e.out ? 1 : 0; p.ot = Math.round((e.ot || 0)*10); } }
   }
   p.H = NET.isHost ? hostState() : null;
   return p;
 }
 function hostState(){
-  const H = {ep:NET.ep, ph:NET.ph, nt:NET.cfg.nt, bt:NET.cfg.bt};
+  const H = {ep:NET.ep, ph:NET.ph, nt:NET.cfg.nt, bt:NET.cfg.bt, md:NET.cfg.md === 'h' ? 'h' : 'n'};
   if (NET.ph !== 'lobby' && NET.ro) H.ro = NET.ro;
   if (NET.res) H.res = NET.res;
   if (NET.ph === 'play' && world && !world.demo && game.ep === NET.ep) {
     H.t = Math.round(game.clock*10);
     H.gm = world.gems.reduce((m, g, i) => g.got ? m | (1 << i) : m, 0);
-    H.ag = []; world.guards.forEach(g => { if (g.ctrl === 'ai') { const [x, y] = toNet(g.x, g.y); H.ag.push([g.slot, x, y, angToNet(g.angle), g.bubble === '?' ? (g.state === 'alert' ? 4 : 1) : g.bubble === '!' ? 2 : g.bubble === '…' ? 3 : 0, g.moving ? 1 : 0]); } });
-    H.bx = []; world.exhibits.forEach((e, i) => { if (e.ctrl === 'bot') { const [x, y] = toNet(e.x, e.y); H.bx.push([i, x, y, e.moving ? 1 : 0, e.pz, e.face, e.c, e.out ? 1 : 0, e.running ? 1 : 0, e.cz, e.cb, e.cg, [...e.dg]]); } });
+    H.ag = []; world.guards.forEach(g => { if (g.ctrl === 'ai') { const [x, y] = toNet(g.x, g.y); H.ag.push([g.slot, x, y, angToNet(g.angle), g.bubble === '?' ? (g.state === 'alert' ? 4 : 1) : g.bubble === '!' ? 2 : g.bubble === '…' ? 3 : 0, g.moving ? 1 : 0].concat(world.hunt ? [g.out ? 1 : 0, Math.round((g.ot || 0)*10)] : [])); } });
+    if (world.hunt) { const G = world.giant; if (G && G.ctrl === 'bot') { const [x, y] = toNet(G.x, G.y); H.gi = [x, y, G.hs, G.face, G.moving ? 1 : 0, G.pz]; } }
+    else { H.bx = []; } if (!world.hunt) world.exhibits.forEach((e, i) => { if (e.ctrl === 'bot') { const [x, y] = toNet(e.x, e.y); H.bx.push([i, x, y, e.moving ? 1 : 0, e.pz, e.face, e.c, e.out ? 1 : 0, e.running ? 1 : 0, e.cz, e.cb, e.cg, [...e.dg]]); } });
   }
   return H;
 }
@@ -2976,7 +3573,7 @@ function sendPres(force){
 function receiveHost(H){
   if (!H || typeof H.ep !== 'number') return;
   NET.H = H;
-  NET.cfg = {nt:clamp(H.nt | 0, 0, LEVELS.length - 1), bt:clamp(H.bt | 0, 0, 6)};
+  NET.cfg = {nt:clamp(H.nt | 0, 0, LEVELS.length - 1), bt:clamp(H.bt | 0, 0, 6), md:H.md === 'h' ? 'h' : 'n'};
   if (typeof H.t === 'number') { NET.clockBase = H.t/10; NET.clockAt = performance.now(); }
   if (game.kind !== 'room') return;
   if (H.ep !== game.ep && H.ro) {
@@ -2996,7 +3593,9 @@ function applyMirror(H){
     const [x, y] = fromNet(a[1], a[2]); g.tx = x; g.ty = y; g.ta = angFromNet(a[3]);
     const b = [null, '?', '!', '…', '?'][a[4]] || null; if (b !== g.bubble) { g.bubble = b; g.bubbleT = b ? 1.4 : 0; }
     g.moving = !!a[5]; g.state = a[4] === 4 ? 'alert' : b === '?' ? 'inspect' : 'walk';
+    if (world.hunt) applyGuardOut(g, a[6], a[7]);
   }
+  if (world.hunt && Array.isArray(H.gi) && world.giant && world.giant.ctrl === 'mirror') { const [x, y] = fromNet(H.gi[0], H.gi[1]); applyGiant(world.giant, [x, y, H.gi[2], H.gi[3], H.gi[4], H.gi[5]]); }
   if (Array.isArray(H.bx)) for (const b of H.bx) {
     const e = world.exhibits[b[0]]; if (!e || e.ctrl !== 'mirror') continue;
     const [x, y] = fromNet(b[1], b[2]);
@@ -3032,15 +3631,17 @@ function syncNetEntities(){
     const [x, y] = fromNet(pr.x, pr.y);
     const e = world.exhibits.find(o => o.id === id && o.ctrl === 'net');
     if (e) {
-      applyExState(e, x, y, pr.m, pr.pz, pr.f, pr.c, pr.o, pr.rn, pr.cz, pr.cb, pr.cg, pr.dg);
+      if (e.big) applyGiant(e, [x, y, pr.hs, pr.f, pr.m, pr.pz]);
+      else applyExState(e, x, y, pr.m, pr.pz, pr.f, pr.c, pr.o, pr.rn, pr.cz, pr.cb, pr.cg, pr.dg);
       continue;
     }
     const g = world.guards.find(o => o.id === id && o.ctrl === 'net');
-    if (g) { g.tx = x; g.ty = y; if (typeof pr.a === 'number') g.ta = angFromNet(pr.a); g.moving = !!pr.w; g.off = pr.off ? 1 : 0; }
+    if (g) { g.tx = x; g.ty = y; if (typeof pr.a === 'number') g.ta = angFromNet(pr.a); g.moving = !!pr.w; g.off = pr.off ? 1 : 0; if (world.hunt) applyGuardOut(g, pr.o, pr.ot); }
   }
   deriveGems();
 }
 function startRoomNight(H){
+  if (H.md === 'h') { startRoomHunt(H); return; }
   game.ep = H.ep; game.night = clamp(H.nt | 0, 0, LEVELS.length - 1); game.kind = 'room'; game.rules = 'team'; game.endShown = -1; game.botReact = .33; game.botNotice = .65;
   buildWorld(game.night, {nPeds:Math.max(1, H.ro.e.length)});
   const myId = NET.myId;
@@ -3071,6 +3672,7 @@ function startRoomNight(H){
 function hostStartNight(){
   if (!NET.isHost) return;
   const list = roomPeerList();
+  if (NET.cfg.md === 'h') { hostStartHunt(list); return; }
   const guardsH = list.filter(x => x.p.ro === 'g').map(x => x.id).slice(0, 3);
   const exH = list.filter(x => x.p.ro !== 'g').map(x => x.id);
   let bots = NET.cfg.bt; if (!exH.length && !bots) bots = 3;
@@ -3082,10 +3684,11 @@ function hostStartNight(){
   startRoomNight(H); sendPres(true);
 }
 function hostEndNight(r){
-  NET.ph = 'end'; NET.res = {w:r.w, why:r.why, gf:gemsFound(), gt:world.gems.length};
+  NET.ph = 'end'; NET.res = world.hunt ? huntResult() : {w:r.w, why:r.why, gf:gemsFound(), gt:world.gems.length};
   sendPres(true); showRoomResult(NET.res);
 }
 function showRoomResult(res){
+  if (res.hunt) { showRoomHuntResult(res); return; }
   game.endShown = game.ep;
   const team = me.role === 'guard' ? 'g' : me.role === 'ex' ? 'e' : null, won = team === res.w;
   if (team) { if (won) SFX.win(); else SFX.lose(); }
@@ -3106,7 +3709,7 @@ function backToRoom(){
 }
 function openRoomPanel(){
   game.mode = 'roomlobby'; stick.active = aimStick.active = false;
-  demoWorld(NET.cfg.nt);
+  roomDemo();
   $('hud').hidden = true; showPanel('room'); renderRoom(); frTickSoon();
 }
 function renderRoom(){
@@ -3120,25 +3723,32 @@ function renderRoom(){
     const dot = document.createElement('span'); dot.className = 'pdot ' + (p.ro === 'g' ? 'g' : 'on');
     const who = document.createElement('span'); who.className = 'who';
     const nm = document.createElement('b'); nm.textContent = cleanName(p.n) + (id === NET.myId ? ' (you)' : '');
-    const sub = document.createElement('small'); sub.textContent = p.ro === 'g' ? 'Night guard' : exName(p.k);
+    const sub = document.createElement('small'); sub.textContent = p.ro === 'g' ? 'Night guard' : NET.cfg.md === 'h' ? `Giant ${exName(p.k).toLowerCase()}` : exName(p.k);
     who.append(nm, sub);
     const acts = document.createElement('span'); acts.className = 'acts';
     if (id === NET.hostId) { const c = document.createElement('span'); c.className = 'chip host'; c.textContent = 'Host'; acts.append(c); }
-    const rc = document.createElement('span'); rc.className = 'chip ' + (p.ro === 'g' ? 'g' : 'e'); rc.textContent = p.ro === 'g' ? 'Guard' : 'Exhibit'; acts.append(rc);
+    const rc = document.createElement('span'); rc.className = 'chip ' + (p.ro === 'g' ? 'g' : 'e'); rc.textContent = p.ro === 'g' ? 'Guard' : NET.cfg.md === 'h' ? 'Giant' : 'Exhibit'; acts.append(rc);
     li.append(dot, who, acts); ul.append(li);
   }
   if (!list.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Connecting…'; ul.append(li); }
   $('roleEx').setAttribute('aria-pressed', String(NET.role !== 'g')); $('roleGuard').setAttribute('aria-pressed', String(NET.role === 'g'));
-  const host = NET.isHost, ns = $('roomNights');
-  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ROMAN[i]; b.setAttribute('aria-label', `Night ${ROMAN[i]}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); demoWorld(i); renderRoom(); }); ns.append(b); });
+  const host = NET.isHost, ns = $('roomNights'), hunt = NET.cfg.md === 'h';
+  if (game.mode === 'roomlobby' && NET.demoKey !== NET.cfg.md + NET.cfg.nt) roomDemo();
+  $('roomModeN').setAttribute('aria-pressed', String(!hunt)); $('roomModeH').setAttribute('aria-pressed', String(hunt));
+  $('roomModeN').disabled = $('roomModeH').disabled = !host;
+  $('roleEx').textContent = hunt ? 'The giant' : 'An exhibit';
+  $('roomNightLbl').hidden = ns.hidden = hunt;
+  $('botLbl').textContent = hunt ? 'Bot guards' : 'Bot exhibits';
+  $('roomTip').innerHTML = hunt ? HUNT_ROOM_TIP : '<b>Team rules:</b> Exhibits grab gems and carry them back to their pedestals. Get caught carrying one and it goes back where it was. Exhibits win when every gem is home. Guards win at 6:00 AM, or by catching every exhibit three times.';
+  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ROMAN[i]; b.setAttribute('aria-label', `Night ${ROMAN[i]}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); roomDemo(); renderRoom(); }); ns.append(b); });
   [...ns.children].forEach((b, i) => { b.setAttribute('aria-pressed', String(i === NET.cfg.nt)); b.disabled = !host; });
   const L = LEVELS[NET.cfg.nt];
-  $('roomNightName').textContent = `${L.name} · ${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${L.map.join('').split('*').length - 1} gems` + (host ? '' : ' · The host picks the night');
+  $('roomNightName').textContent = hunt ? `${HUNT.name} · One giant hunts the night guards` + (host ? '' : ' · The host picks the game') : `${L.name} · ${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${L.map.join('').split('*').length - 1} gems` + (host ? '' : ' · The host picks the night');
   $('botCount').textContent = NET.cfg.bt;
   $('botMinus').disabled = !host || NET.cfg.bt <= 0; $('botPlus').disabled = !host || NET.cfg.bt >= 6;
   const st = $('btnStartRoom'), H = NET.H, nightOn = H && H.ph === 'play' && !host;
-  if (host) { st.disabled = false; st.textContent = 'Start night'; }
-  else if (nightOn) { st.disabled = false; st.textContent = 'Watch the night'; }
+  if (host) { st.disabled = false; st.textContent = hunt ? 'Start Huntdown' : 'Start night'; }
+  else if (nightOn) { st.disabled = false; st.textContent = hunt ? 'Watch the hunt' : 'Watch the night'; }
   else { st.disabled = true; st.textContent = 'Waiting for the host to start'; }
   renderRoomFriends();
 }
@@ -3572,8 +4182,12 @@ async function importSave(file){
 /* ---------- wiring ---------- */
 $('btnPlay').addEventListener('click', () => { audioInit(); openIntro(game.sel); });
 $('btnFriends').addEventListener('click', () => { audioInit(); openOnline(); });
-$('playEx').addEventListener('click', () => { save.play = 'ex'; persist(); renderMenu(); });
-$('playGuard').addEventListener('click', () => { save.play = 'guard'; persist(); renderMenu(); });
+$('playEx').addEventListener('click', () => { if (save.mode === 'hunt') save.huntAs = 'giant'; else save.play = 'ex'; persist(); renderMenu(); });
+$('playGuard').addEventListener('click', () => { if (save.mode === 'hunt') save.huntAs = 'guard'; else save.play = 'guard'; persist(); renderMenu(); });
+$('modeNights').addEventListener('click', () => { save.mode = 'nights'; persist(); audioInit(); renderMenu(); });
+$('modeHunt').addEventListener('click', () => { save.mode = 'hunt'; persist(); audioInit(); renderMenu(); });
+$('roomModeN').addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.md = 'n'; sendPres(true); renderRoom(); });
+$('roomModeH').addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.md = 'h'; sendPres(true); renderRoom(); });
 $('btnLightsOut').addEventListener('click', startSolo);
 $('btnIntroBack').addEventListener('click', openMenu);
 $('btnPause').addEventListener('click', togglePause);
@@ -3654,12 +4268,13 @@ function frame(now){
   const dt = Math.min(.05, Math.max(0, (now - last)/1000 || 0)); last = now;
   game.t += dt;
   if (game.flash > 0) game.flash = Math.max(0, game.flash - dt*1.2);
+  if (game.shake > 0) game.shake = Math.max(0, game.shake - dt*1.6);
   try {
     padPoll(now);
     MU.tension += (tensionNow() - MU.tension)*Math.min(1, dt*3);
     updateVoices(dt);
     if (world) {
-      if (world.demo) { for (const g of world.guards) if (g.ctrl === 'ai') updateGuard(g, dt, false); }
+      if (world.demo) { for (const g of world.guards) if (g.ctrl === 'ai') updateGuard(g, dt, false); else if (g.ctrl === 'still') g.angle += Math.sin(game.t*.6 + g.seed)*dt*.8; }
       else if (game.mode === 'play') { updateNight(dt); updateHUD(); }
       else if (game.mode === 'caught') {
         game.caughtT -= dt;
@@ -3698,7 +4313,7 @@ function boot(data){
     if (rm) { openOnline(); $('codeIn').value = rm[1].toUpperCase(); if (save.name) joinRoom(rm[1], false); else setOnlineStatus(`Type your name, then tap Join to get into room ${rm[1].toUpperCase()}.`); }
     else if (fm) { openOnline(); $('fCodeIn').value = fidShow(fm[1].toUpperCase()); frMsg('Tap Add to send a friend request.'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
-  window.__mad = {game, LEVELS, NET, me, get world(){ return world; }, startSolo, openIntro, joinRoom, keys, guardSees, save:() => save, hostStartNight, FR};
+  window.__mad = {game, LEVELS, NET, me, get world(){ return world; }, startSolo, openIntro, joinRoom, keys, guardSees, save:() => save, hostStartNight, FR, hunt:{HUNT, updateHunt, startHuntSolo, updateHuntGuard, updateGiant, giantSteer, huntStage, giantLitBy, demoHunt, giantSize, huntField, cellOf}};
   window.__madAudio = {AU, MU, VOICE, setMusicStyle, toggleMusic, playVoice};
   requestAnimationFrame(t => { last = t; frame(t); });
 }
