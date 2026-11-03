@@ -283,6 +283,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <div class="row">
               <button class="btn ghost grow" id="btnSoundMenu" aria-pressed="true">Sound on</button>
               <button class="btn ghost grow" id="btnMusicMenu" aria-pressed="true">Music on</button>
+              <button class="btn ghost grow" id="btnVoiceMenu" aria-pressed="true">Voices on</button>
             </div>
             <div class="vol">
               <label class="lbl" for="volIn">Volume</label>
@@ -577,7 +578,7 @@ function cleanName(v, max = 14){
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
   return s || 'Player';
 }
-function saveDefaults(){ return {best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
+function saveDefaults(){ return {best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
 function loadSave(seed){
   const b = saveDefaults();
@@ -589,6 +590,7 @@ function loadSave(seed){
     if (EX_IDS.includes(s.exhibit)) b.exhibit = s.exhibit;
     if (typeof s.sound === 'boolean') b.sound = s.sound;
     if (typeof s.mus === 'boolean') b.mus = s.mus;
+    if (typeof s.voices === 'boolean') b.voices = s.voices;
     if (typeof s.mstyle === 'string') b.mstyle = s.mstyle;
     if (Number.isFinite(s.vol)) b.vol = clamp(s.vol, 0, 1);
     if (typeof s.silentOk === 'boolean') b.silentOk = s.silentOk;
@@ -670,7 +672,7 @@ function audioInit(){
       const nb = c.createBuffer(1, c.sampleRate, c.sampleRate), d = nb.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1;
       AU.noise = nb;
-      musicInit();
+      musicInit(); voiceInit();
     }
     applyAudioSession(false);
     const c = AU.ctx;
@@ -1812,6 +1814,103 @@ addEventListener('gamepaddisconnected', () => { if (!padGet()) { GP.connected = 
 addEventListener('pointerdown', e => { if (e.pointerType) padOff(); }, true);
 addEventListener('keydown', () => padOff(), true);
 
+/* ---------- voice lines ----------
+   Recorded clips live in voice/ next to the page, listed in voice/list.json. Each guard says a
+   line when something happens (a "?", "…" or "!" bubble), quieter when far away and panned to
+   where that guard is on screen. A soft hall echo makes them sound like they're in the museum.
+   With no clips yet, nothing plays. */
+const VOICE = {cats:{hmm:['hmm1','hmm2'], heard:['heard1','heard2'], peek:['peek1'], gotcha:['gotcha1','gotcha2'], nothing:['nothing1','nothing2'], yawn:['yawn1'], dawn:['dawn1'], gems:['gems1'], breath:['breath1']},
+  bufs:new Map(), loading:false, loaded:false, gain:null, hall:null, last:0, lastBy:new Map(), breath:null, yawnAt:0};
+function voiceInit(){
+  if (VOICE.loading || !AU.ctx) return;
+  VOICE.loading = true;
+  const c = AU.ctx;
+  VOICE.gain = c.createGain(); VOICE.gain.gain.value = save.voices ? 1 : 0; VOICE.gain.connect(AU.fx);
+  // a short made-up room echo, like a big quiet gallery
+  try {
+    const len = Math.floor(c.sampleRate*1.3), ir = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random()*2 - 1)*Math.pow(1 - i/len, 3.2); }
+    const conv = c.createConvolver(); conv.buffer = ir; const wet = c.createGain(); wet.gain.value = .16;
+    conv.connect(wet); wet.connect(VOICE.gain); VOICE.hall = conv;
+  } catch (e) { VOICE.hall = null; }
+  fetch('voice/list.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).then(list => {
+    if (!list || !Array.isArray(list.clips)) return;
+    return Promise.all(list.clips.filter(id => /^[a-z]+\d$/.test(id)).map(id =>
+      fetch('voice/' + id + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(ab => ab && new Promise(res => c.decodeAudioData(ab, res, () => res(null)))).then(buf => { if (buf) VOICE.bufs.set(id, buf); }).catch(() => {})));
+  }).catch(() => {}).finally(() => { VOICE.loaded = true; syncSoundButtons(); });
+}
+function applyVoices(){ if (VOICE.gain && AU.ctx) VOICE.gain.gain.setTargetAtTime(save.voices ? 1 : 0, AU.ctx.currentTime, .05); }
+const hasVoice = cat => (VOICE.cats[cat] || []).some(id => VOICE.bufs.has(id));
+function listener(){ if (me.ent && world && !world.demo) return me.ent; return world ? {x:world.W*T/2, y:world.H*T/2} : {x:0, y:0}; }
+// Play one clip from a category. `from` is where the speaker is (or null for no direction).
+function playVoice(cat, from, o={}){
+  const c = AU.ctx; if (!c || c.state !== 'running' || !save.voices || !save.sound) return null;
+  const ids = (VOICE.cats[cat] || []).filter(id => VOICE.bufs.has(id)); if (!ids.length) return null;
+  const now = performance.now();
+  if (!o.force) {
+    if (now - VOICE.last < 900) return null;
+    if (from && now - (VOICE.lastBy.get(from) || 0) < 2600) return null;
+  }
+  let vol = o.vol ?? 1, pan = 0;
+  if (from) {
+    const L = listener(), d = dist(from, L);
+    if (me.ent && !world.demo) vol *= clamp(1 - (d - 200)/560, .12, 1);
+    pan = clamp((from.x - L.x)/420, -1, 1)*.75;
+  }
+  try {
+    const src = c.createBufferSource(); src.buffer = VOICE.bufs.get(mpick(ids));
+    src.playbackRate.value = o.rate || (.97 + Math.random()*.06);
+    const g = c.createGain(); g.gain.value = vol;
+    const p = c.createStereoPanner ? c.createStereoPanner() : null;
+    src.connect(g);
+    if (p) { p.pan.value = pan; g.connect(p); p.connect(VOICE.gain); if (VOICE.hall) p.connect(VOICE.hall); }
+    else { g.connect(VOICE.gain); if (VOICE.hall) g.connect(VOICE.hall); }
+    src.onended = () => { try { src.disconnect(); g.disconnect(); if (p) p.disconnect(); } catch (e) {} };
+    src.start();
+    if (!o.quiet) { VOICE.last = now; if (from) VOICE.lastBy.set(from, now); }
+    return {src, g, p};
+  } catch (e) { return null; }
+}
+// What each guard bubble means out loud.
+function onGuardBubble(g, was, now){
+  if (now === '!') playVoice('gotcha', g, {force:true});
+  else if (now === '…') playVoice('peek', g);
+  else if (now === '?') playVoice(g.state === 'alert' ? 'heard' : 'hmm', g);
+  else if (!now && was === '?' && Math.random() < .55) setTimeout(() => { if (inNight()) playVoice('nothing', g); }, 250);
+}
+function updateVoices(dt){
+  if (!world || world.demo || !inNight() || !VOICE.loaded) { stopBreath(); return; }
+  for (const g of world.guards) {
+    if (g.vb !== g.bubble) { const was = g.vb; g.vb = g.bubble; if (game.clock >= 0) onGuardBubble(g, was, g.bubble); }
+  }
+  // now and then a guard on patrol yawns
+  VOICE.yawnAt -= dt;
+  if (VOICE.yawnAt <= 0) {
+    VOICE.yawnAt = 28 + Math.random()*30;
+    const g = mpick(world.guards.filter(x => x !== me.ent && (x.ctrl === 'ai' || x.ctrl === 'mirror') && !x.bubble));
+    if (g && game.clock > 8) playVoice('yawn', g, {vol:.85});
+  }
+  // heavy breathing when a guard leans in close to you
+  let near = null, nd = 1e9;
+  if (me.role === 'ex' && me.ent && !me.ent.out) for (const g of world.guards) { const d = dist(g, me.ent); if (d < nd) { nd = d; near = g; } }
+  const want = near && nd < 130 ? clamp((130 - nd)/80, 0, 1) : 0;
+  const b = VOICE.breath;
+  if (want > 0 && !b && hasVoice('breath')) {
+    const v = playVoice('breath', null, {force:true, quiet:true, vol:.0001, rate:1});
+    if (v) { VOICE.breath = v; v.src.onended = () => { try { v.src.disconnect(); v.g.disconnect(); if (v.p) v.p.disconnect(); } catch (e) {} if (VOICE.breath === v) VOICE.breath = null; }; }
+  }
+  if (VOICE.breath && AU.ctx) {
+    const t = AU.ctx.currentTime, L = me.ent;
+    VOICE.breath.g.gain.setTargetAtTime(Math.max(.0001, want*.95), t, .15);
+    if (VOICE.breath.p && near && L) VOICE.breath.p.pan.setTargetAtTime(clamp((near.x - L.x)/120, -1, 1)*.6, t, .1);
+    if (want <= 0) { const v = VOICE.breath; setTimeout(() => { if (VOICE.breath === v) stopBreath(); }, 700); }
+  }
+}
+function stopBreath(){
+  const v = VOICE.breath; if (!v) return; VOICE.breath = null;
+  try { v.g.gain.setTargetAtTime(.0001, AU.ctx.currentTime, .12); setTimeout(() => { try { v.src.stop(); } catch (e) {} }, 400); } catch (e) {}
+}
+
 
 /* ---------- night loop ---------- */
 function updateNight(dt){
@@ -1966,6 +2065,7 @@ function endSolo(won, why){
   const stars = won ? Math.max(1, 3 - p.c) : 0;
   if (won) { save.best[i] = Math.max(save.best[i], stars); persist(); SFX.win(); setPose(p, randomPose(p.kind, p.pz)); p.moving = false; p.wob = false; }
   else SFX.lose();
+  stopBreath(); if (!won && why === 'dawn') setTimeout(() => playVoice('dawn', null, {force:true}), 700);
   const lines = {3:'Not a single wobble. The guard suspects nothing.', 2:'One close call, but nobody noticed.', 1:'That was close. The guard is still rubbing his eyes.'};
   showResult({
     kicker: won ? `Night ${ROMAN[i]} complete` : `Night ${ROMAN[i]}`,
@@ -1983,6 +2083,7 @@ function endSoloGuard(r){
   const gf = gemsFound(), gt = world.gems.length, f = gt ? gf/gt : 0;
   const stars = !won ? 0 : r.why === 'out' ? 3 : f <= .34 ? 3 : f <= .67 ? 2 : 1;
   if (won) { save.bestG[i] = Math.max(save.bestG[i], stars); persist(); SFX.win(); } else SFX.lose();
+  setTimeout(() => playVoice(won ? (r.why === 'out' ? 'gotcha' : 'dawn') : 'gems', null, {force:true}), 700);
   showResult({
     kicker: won ? `Night ${ROMAN[i]} · Guard shift complete` : `Night ${ROMAN[i]} · Guard shift`,
     title: won ? (r.why === 'out' ? 'Every exhibit caught!' : 'Sunrise! The museum is safe.') : 'The exhibits got every gem home!',
@@ -2254,6 +2355,7 @@ function drawPreviews(){
 }
 function syncSoundButtons(){
   for (const id of ['btnSoundMenu', 'btnSoundPause']) { const b = $(id); b.textContent = save.sound ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(save.sound)); }
+  { const b = $('btnVoiceMenu'); b.hidden = !VOICE.bufs.size; b.textContent = save.voices ? 'Voices on' : 'Voices off'; b.setAttribute('aria-pressed', String(save.voices)); }
   for (const id of ['btnMusicMenu', 'btnMusicPause']) { const b = $(id); b.textContent = save.mus ? 'Music on' : 'Music off'; b.setAttribute('aria-pressed', String(save.mus)); }
   for (const b of $('styleRow').children) b.setAttribute('aria-pressed', String(b.dataset.id === save.mstyle));
   const v = Math.round(save.vol*100); if (+$('volIn').value !== v) $('volIn').value = String(v); $('volOut').textContent = v;
@@ -2673,7 +2775,7 @@ function hostState(){
   if (NET.ph === 'play' && world && !world.demo && game.ep === NET.ep) {
     H.t = Math.round(game.clock*10);
     H.gm = world.gems.reduce((m, g, i) => g.got ? m | (1 << i) : m, 0);
-    H.ag = []; world.guards.forEach(g => { if (g.ctrl === 'ai') { const [x, y] = toNet(g.x, g.y); H.ag.push([g.slot, x, y, angToNet(g.angle), g.bubble === '?' ? 1 : g.bubble === '!' ? 2 : g.bubble === '…' ? 3 : 0, g.moving ? 1 : 0]); } });
+    H.ag = []; world.guards.forEach(g => { if (g.ctrl === 'ai') { const [x, y] = toNet(g.x, g.y); H.ag.push([g.slot, x, y, angToNet(g.angle), g.bubble === '?' ? (g.state === 'alert' ? 4 : 1) : g.bubble === '!' ? 2 : g.bubble === '…' ? 3 : 0, g.moving ? 1 : 0]); } });
     H.bx = []; world.exhibits.forEach((e, i) => { if (e.ctrl === 'bot') { const [x, y] = toNet(e.x, e.y); H.bx.push([i, x, y, e.moving ? 1 : 0, e.pz, e.face, e.c, e.out ? 1 : 0, e.running ? 1 : 0, e.cz, e.cb, e.cg, [...e.dg]]); } });
   }
   return H;
@@ -2706,8 +2808,8 @@ function applyMirror(H){
   if (Array.isArray(H.ag)) for (const a of H.ag) {
     const g = world.guards[a[0]]; if (!g || g.ctrl !== 'mirror') continue;
     const [x, y] = fromNet(a[1], a[2]); g.tx = x; g.ty = y; g.ta = angFromNet(a[3]);
-    const b = [null, '?', '!', '…'][a[4]] || null; if (b !== g.bubble) { g.bubble = b; g.bubbleT = b ? 1.4 : 0; }
-    g.moving = !!a[5]; g.state = b === '?' ? 'inspect' : 'walk';
+    const b = [null, '?', '!', '…', '?'][a[4]] || null; if (b !== g.bubble) { g.bubble = b; g.bubbleT = b ? 1.4 : 0; }
+    g.moving = !!a[5]; g.state = a[4] === 4 ? 'alert' : b === '?' ? 'inspect' : 'walk';
   }
   if (Array.isArray(H.bx)) for (const b of H.bx) {
     const e = world.exhibits[b[0]]; if (!e || e.ctrl !== 'mirror') continue;
@@ -2801,6 +2903,7 @@ function showRoomResult(res){
   game.endShown = game.ep;
   const team = me.role === 'guard' ? 'g' : me.role === 'ex' ? 'e' : null, won = team === res.w;
   if (team) { if (won) SFX.win(); else SFX.lose(); }
+  stopBreath(); setTimeout(() => playVoice(res.w === 'e' ? 'gems' : res.why === 'dawn' ? 'dawn' : 'gotcha', null, {force:true}), 700);
   const why = res.why === 'gems' ? 'Every gem made it home before sunrise.' : res.why === 'dawn' ? `The sun came up with ${res.gf} of ${res.gt} gems brought home.` : 'Every exhibit was caught three times.';
   showResult({
     kicker:`Room ${NET.code} · Night ${ROMAN[game.night]}`,
@@ -3136,6 +3239,7 @@ $('btnResAgain').addEventListener('click', startSolo);
 $('btnSoundMenu').addEventListener('click', toggleSound);
 $('btnSoundPause').addEventListener('click', toggleSound);
 $('btnMusicMenu').addEventListener('click', toggleMusic);
+$('btnVoiceMenu').addEventListener('click', () => { save.voices = !save.voices; persist(); audioInit(); applyVoices(); syncSoundButtons(); if (save.voices) playVoice('hmm', null, {force:true}); });
 $('btnMusicPause').addEventListener('click', toggleMusic);
 $('volIn').addEventListener('input', () => { save.vol = clamp(+$('volIn').value/100, 0, 1); persist(); audioInit(); applyVolume(); syncSoundButtons(); });
 $('btnSilent').addEventListener('click', () => { save.silentOk = !save.silentOk; persist(); applyAudioSession(true); if (!save.silentOk && AU.tag) { try { AU.tag.pause(); AU.tag.removeAttribute('src'); } catch (e) {} AU.tag = null; } AU.unlocked = false; audioInit(); syncSoundButtons(); });
@@ -3176,6 +3280,7 @@ function frame(now){
   try {
     padPoll(now);
     MU.tension += (tensionNow() - MU.tension)*Math.min(1, dt*3);
+    updateVoices(dt);
     if (world) {
       if (world.demo) { for (const g of world.guards) if (g.ctrl === 'ai') updateGuard(g, dt, false); }
       else if (game.mode === 'play') { updateNight(dt); updateHUD(); }
@@ -3209,7 +3314,7 @@ function boot(data){
     else if (fm) { openOnline(); $('fCodeIn').value = fidShow(fm[1].toUpperCase()); frMsg('Tap Add to send a friend request.'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
   }
   window.__mad = {game, LEVELS, NET, me, get world(){ return world; }, startSolo, openIntro, joinRoom, keys, guardSees, save:() => save, hostStartNight, FR};
-  window.__madAudio = {AU, MU, setMusicStyle, toggleMusic};
+  window.__madAudio = {AU, MU, VOICE, setMusicStyle, toggleMusic, playVoice};
   requestAnimationFrame(t => { last = t; frame(t); });
 }
 if (window.claude?.hot?.ready) window.claude.hot.ready(boot);
