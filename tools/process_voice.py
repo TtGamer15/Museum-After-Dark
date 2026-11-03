@@ -77,13 +77,16 @@ def clean(x, kind):
         y = trim(y, floor - 6, pad_in=.05, pad_out=.3, over=8)
         y = level(y, -26, -4)
         return fades(y, .12, .5), floor
-    chain = (f'highpass=f=80,highpass=f=80,bandreject=f=60:width_type=h:w=8,afftdn=nr=22:nf={nf}:tn=1,lowpass=f=12000,'
+    # Already-clean recordings get a lighter touch, so the voice doesn't turn watery.
+    rel = float(np.percentile(db, 97)) - floor
+    nr, rng = (24, .08) if rel < 30 else (16, .14) if rel < 40 else (10, .22)
+    chain = (f'highpass=f=80,highpass=f=80,bandreject=f=60:width_type=h:w=8,afftdn=nr={nr}:nf={nf}:tn=1,lowpass=f=12000,'
              'acompressor=threshold=0.12:ratio=3:attack=6:release=120:makeup=1.5')
     y = ffilter(x, chain)
     ydb, _ = frames_db(y)
     yfloor = float(np.percentile(ydb, 8)); peak = float(ydb.max())
-    gate = 10 ** ((yfloor + 0.35 * (peak - yfloor)) / 20)
-    y = ffilter(y, f'agate=threshold={gate:.5f}:ratio=4:attack=3:release=200:range=0.08:knee=4')
+    gate = 10 ** ((yfloor + 0.25 * (peak - yfloor)) / 20)
+    y = ffilter(y, f'agate=threshold={gate:.5f}:ratio=3:attack=3:release=250:range={rng}:knee=6')
     y = trim(y, yfloor)
     y = level(y, -18)
     return fades(y), floor
