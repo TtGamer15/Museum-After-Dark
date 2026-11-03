@@ -7,8 +7,9 @@
 <meta name="description" content="A sneaking game based on the playground freeze game. Freeze when the night guard's flashlight finds you, or be the guard. Play with friends.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Museum">
+<meta name="apple-mobile-web-app-title" content="Museum After Dark">
+<meta name="application-name" content="Museum After Dark">
+<style>html{background:#0b0f24}</style>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -37,6 +38,9 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
+/* Like Noodle Bots: a thin bar at the very top of home-screen apps, in the game's color */
+#topcap{display:none}
+@media (display-mode: standalone){#topcap{display:block;position:fixed;left:0;right:0;top:0;height:2px;background:var(--night);z-index:9999}}
 html{height:100%;--st:0px;--sb:0px}
 /* On the website the game runs under the iPhone's clock bar, so the top bar and menus step down by its height. */
 html.site{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -215,6 +219,7 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 
+<div id="topcap" aria-hidden="true"></div>
 <div id="app">
   <div id="insetProbe" aria-hidden="true" style="position:absolute;visibility:hidden;pointer-events:none;top:0;left:0;width:1px;height:var(--st);padding-bottom:var(--sb)"></div>
   <header class="hud" id="hud" hidden>
