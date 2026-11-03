@@ -1521,7 +1521,7 @@ function musicInit(){
   dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(lp); MU.dl = dl; MU.fb = fb;
   MU.bus = c.createGain(); MU.bus.connect(lp); MU.bus.connect(dl);
   MU.dry = c.createGain(); MU.dry.connect(MU.gain);
-  MU.beat = c.createGain(); MU.beat.gain.value = 0; MU.beat.connect(MU.gain);
+  MU.beat = c.createGain(); MU.beat.gain.value = 0; MU.beat.connect(AU.fx);
   MU.cur = save.mstyle === 'auto' || !MSTYLES[save.mstyle] ? 'sneaky' : save.mstyle; MU.since = c.currentTime;
   newSide(); styleFx(0);
 }
@@ -1636,13 +1636,7 @@ function musicAutoStep(now){
 function musicSchedule(){
   const c = AU.ctx; if (!c || c.state !== 'running' || !MU.bus || document.hidden) return;
   const now = c.currentTime;
-  // heartbeat when a flashlight is close
-  const tz = save.mus ? MU.tension : 0;
-  MU.beat.gain.setTargetAtTime(tz > .2 ? .35 + .65*tz : 0, now, .4);
-  if (tz > .2) {
-    if (MU.hb < now) MU.hb = now + .05;
-    while (MU.hb < now + 1) { thump(MU.hb, 95, 48, .2, .5, MU.beat); thump(MU.hb + .22, 85, 45, .18, .3, MU.beat); MU.hb += 1.05 - .4*tz; }
-  }
+  heartSchedule(now);
   if (!save.mus) return;
   if (MU.next < now + .05) MU.next = now + .1;
   musicAutoStep(now);
@@ -1650,6 +1644,33 @@ function musicSchedule(){
   while (MU.next < now + 1.2) {
     try { st.play(MU.next, MU.bar); } catch (e) {}
     MU.next += st.bar; MU.bar++;
+  }
+}
+// Your heartbeat when a guard is near you: faster and louder the closer he gets, pounding in his light.
+// It's a sound effect (it plays with music off too).
+function heartBeat(t, vol){
+  const c = AU.ctx;
+  const beat = (at, f0, v) => {
+    const o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f0*.55, at + .12);
+    lp.type = 'lowpass'; lp.frequency.value = 220;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(v, at + .012); g.gain.exponentialRampToValueAtTime(0.0001, at + .22);
+    o.connect(lp); lp.connect(g); g.connect(MU.beat); ended(o, lp, g); o.start(at); o.stop(at + .25);
+    if (AU.noise) { const s0 = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain();
+      s0.buffer = AU.noise; f.type = 'lowpass'; f.frequency.value = 160; gn.gain.setValueAtTime(v*.9, at); gn.gain.exponentialRampToValueAtTime(0.0001, at + .09);
+      s0.connect(f); f.connect(gn); gn.connect(MU.beat); ended(s0, f, gn); s0.start(at, Math.random()*.5); s0.stop(at + .1); }
+  };
+  beat(t, 68, vol); beat(t + .24, 58, vol*.62);
+}
+function heartSchedule(now){
+  const tz = save.sound ? MU.tension : 0;
+  MU.beat.gain.setTargetAtTime(tz > .15 ? 1 : 0, now, .35);
+  if (tz <= .15) return;
+  if (MU.hb < now) MU.hb = now + .05;
+  while (MU.hb < now + .8) {
+    const bpm = 68 + 82*tz;
+    heartBeat(MU.hb, .25 + .75*tz);
+    MU.hb += 60/bpm;
   }
 }
 // How close the nearest flashlight is to you, from 0 (safe) to 1 (in the light).
@@ -1661,7 +1682,7 @@ function tensionNow(){
     if (guardSees(g, e.x, e.y)) return 1;
     const d = dist(g, e); if (d > g.range*1.6) continue;
     const near = clamp(1 - (d - 50)/(g.range*1.5), 0, 1), diff = Math.abs(wrap(Math.atan2(e.y - g.y, e.x - g.x) - g.angle));
-    t = Math.max(t, near*(diff < g.cone + .7 ? 1 : .45));
+    t = Math.max(t, near*(diff < g.cone + .7 ? 1 : .45), clamp((170 - d)/110, 0, 1)*.9);
   }
   return t;
 }
@@ -1819,7 +1840,7 @@ addEventListener('keydown', () => padOff(), true);
    line when something happens (a "?", "…" or "!" bubble), quieter when far away and panned to
    where that guard is on screen. A soft hall echo makes them sound like they're in the museum.
    With no clips yet, nothing plays. */
-const VOICE = {cats:{hmm:['hmm1','hmm2'], heard:['heard1','heard2'], peek:['peek1'], gotcha:['gotcha1','gotcha2'], nothing:['nothing1','nothing2'], yawn:['yawn1'], dawn:['dawn1'], gems:['gems1'], breath:['breath1']},
+const VOICE = {cats:{hmm:['hmm1','hmm2'], heard:['heard1','heard2'], peek:['peek1'], gotcha:['gotcha1','gotcha2'], nothing:['nothing1','nothing2'], yawn:['yawn1'], dawn:['dawn1'], gems:['gems1']},
   bufs:new Map(), loading:false, loaded:false, gain:null, hall:null, last:0, lastBy:new Map(), breath:null, yawnAt:0};
 function voiceInit(){
   if (VOICE.loading || !AU.ctx) return;
@@ -1889,21 +1910,6 @@ function updateVoices(dt){
     VOICE.yawnAt = 28 + Math.random()*30;
     const g = mpick(world.guards.filter(x => x !== me.ent && (x.ctrl === 'ai' || x.ctrl === 'mirror') && !x.bubble));
     if (g && game.clock > 8) playVoice('yawn', g, {vol:.85});
-  }
-  // heavy breathing when a guard leans in close to you
-  let near = null, nd = 1e9;
-  if (me.role === 'ex' && me.ent && !me.ent.out) for (const g of world.guards) { const d = dist(g, me.ent); if (d < nd) { nd = d; near = g; } }
-  const want = near && nd < 130 ? clamp((130 - nd)/80, 0, 1) : 0;
-  const b = VOICE.breath;
-  if (want > 0 && !b && hasVoice('breath')) {
-    const v = playVoice('breath', null, {force:true, quiet:true, vol:.0001, rate:1});
-    if (v) { VOICE.breath = v; v.src.onended = () => { try { v.src.disconnect(); v.g.disconnect(); if (v.p) v.p.disconnect(); } catch (e) {} if (VOICE.breath === v) VOICE.breath = null; }; }
-  }
-  if (VOICE.breath && AU.ctx) {
-    const t = AU.ctx.currentTime, L = me.ent;
-    VOICE.breath.g.gain.setTargetAtTime(Math.max(.0001, want*.95), t, .15);
-    if (VOICE.breath.p && near && L) VOICE.breath.p.pan.setTargetAtTime(clamp((near.x - L.x)/120, -1, 1)*.6, t, .1);
-    if (want <= 0) { const v = VOICE.breath; setTimeout(() => { if (VOICE.breath === v) stopBreath(); }, 700); }
   }
 }
 function stopBreath(){
