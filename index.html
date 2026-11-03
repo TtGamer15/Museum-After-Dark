@@ -2126,7 +2126,7 @@ function onGuardBubble(g, was, now){
   if (now === '!') playVoice('gotcha', g, {force:true});
   else if (now === '…') playVoice('peek', g);
   else if (now === '?') playVoice(g.state === 'alert' ? 'heard' : 'hmm', g);
-  else if (!now && was === '?' && Math.random() < .55) setTimeout(() => { if (inNight()) playVoice('nothing', g); }, 250);
+  else if (!now && was === '?' && game.rules !== 'hunt' && Math.random() < .55) setTimeout(() => { if (inNight()) playVoice('nothing', g); }, 250);
 }
 function updateVoices(dt){
   if (!world || world.demo || !inNight() || !VOICE.loaded) { stopBreath(); return; }
