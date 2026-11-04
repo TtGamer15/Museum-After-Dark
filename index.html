@@ -184,7 +184,15 @@ input.code-in{text-transform:uppercase;letter-spacing:.14em;font-weight:600}
 .stars-big .off{color:color-mix(in srgb,var(--marble) 18%,transparent)}
 .lose-title{color:var(--velvet)}
 
-button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outline-offset:2px}
+button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--torch);outline-offset:2px}
+/* YouTube channel link */
+.btn.yt{display:flex;align-items:center;gap:12px;text-decoration:none;text-align:left}
+.yt-play{width:30px;height:30px;flex:none}
+.yt-play circle{fill:var(--velvet)}
+.yt-play path{fill:var(--marble)}
+.btn.yt > span{display:flex;flex-direction:column;gap:2px;line-height:1.2;min-width:0}
+.btn.yt small{font-weight:500;font-size:13px;color:var(--dust)}
+.btn.yt .nowrap{white-space:nowrap}
 /* Dress up */
 .dress-stage{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 8px 8px;border-radius:6px;background:radial-gradient(circle at 50% 40%,var(--gallery-2),var(--night) 75%);border:1px solid color-mix(in srgb,var(--marble) 12%,transparent)}
 .dress-stage canvas{width:150px;height:150px}
@@ -347,6 +355,10 @@ button:focus-visible,summary:focus-visible{outline:2px solid var(--torch);outlin
             <p class="status" id="saveMsg" hidden></p>
           </div>
         </details>
+        <a class="btn ghost yt" id="ytLink" href="https://www.youtube.com/@museum_after_dark" target="_blank" rel="noopener">
+          <svg class="yt-play" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M9.8 7.6v8.8l7-4.4z"/></svg>
+          <span><b>Watch on YouTube</b><small>@museum_after_dark · <span class="nowrap">new updates every Tuesday</span></small></span>
+        </a>
       </div>
     </section>
 
@@ -1961,7 +1973,7 @@ function padOff(){ padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; if (!app
 const padScreen = () => Object.keys(panels).find(k => !panels[k].hidden) || null;
 const PAD_BACK = {intro:'btnIntroBack', pause:'btnResume', online:'btnOnlineBack', closet:'btnDressDone'};
 function padTargets(root){
-  const els = [...root.querySelectorAll('button, input, summary')];
+  const els = [...root.querySelectorAll('button, input, summary, a[href]')];
   if (!$('invitePop').hidden) els.push(...$('invitePop').querySelectorAll('button'));
   return els.filter(el => !el.disabled && el.getClientRects().length && !el.closest('[hidden]') && !(el.closest('details:not([open])') && el.tagName !== 'SUMMARY'));
 }
