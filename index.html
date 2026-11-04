@@ -1621,7 +1621,7 @@ function drawFigure(c, a, x, y){
   c.save(); c.translate(x, y);
   if (a.big) {
     // the giant: much bigger, with a dark red glow around it, shaking while a light holds it
-    if (a.hs === 1) c.translate(Math.sin(a.t*70)*(.6 + 1.6*clamp(a.strain/giantHold(a.stage || 0), 0, 1))*a.sz*.5, 0);
+    c.translate(giantShake(a), 0);
     const r = 26*a.sz, gr = c.createRadialGradient(0, -14*a.sz, 0, 0, -14*a.sz, r);
     gr.addColorStop(0, a.hs === 2 ? 'rgba(255,40,60,.34)' : 'rgba(190,30,50,.22)'); gr.addColorStop(1, 'rgba(190,30,50,0)');
     c.fillStyle = gr; c.fillRect(-r, -14*a.sz - r, 2*r, 2*r);
@@ -1631,13 +1631,22 @@ function drawFigure(c, a, x, y){
   if (a.kind === 'dino') drawDino(c, a); else drawHumanoid(c, a);
   c.restore();
 }
-function drawHumanoid(c, a){
-  const F = FIG[a.kind], isG = a.kind === 'guard', walking = a.moving && !a.wob;
-  let la = .18, ra = .18, spread = .25, lift = false, lean = 0, hop = 0, lf = 0, rf = 0;
-  if (walking) { const s = Math.sin(a.phase); la = .3 + s*.5; ra = .3 - s*.5; lf = Math.max(0, s)*3.5; rf = Math.max(0, -s)*3.5; hop = Math.abs(s)*1.2; }
-  else if (a.pose) { la = a.pose.la; ra = a.pose.ra; spread = a.pose.spread ?? .25; lift = !!a.pose.lift; lean = a.pose.lean || 0; }
-  if (isG) ra = 1.2;
+// How a figure leans, hops and tilts its head this frame. The giant's red eye glow uses this too,
+// so the glow always sits right on the eyes, whatever pose the figure is in.
+function figMotion(a){
+  const walking = a.moving && !a.wob, dino = a.kind === 'dino';
+  let lean = 0, hop = 0, head = 0;
+  if (walking) { const s = Math.sin(a.phase); hop = Math.abs(s)*1.2; if (dino) head = Math.sin(a.phase*2)*.06; }
+  else if (a.pose) { lean = a.pose.lean || 0; if (dino) head = a.pose.head || 0; }
   if (a.wob) lean += Math.sin(a.t*48)*.08;
+  return {walking, lean, hop, head};
+}
+function drawHumanoid(c, a){
+  const F = FIG[a.kind], isG = a.kind === 'guard', {walking, lean, hop} = figMotion(a);
+  let la = .18, ra = .18, spread = .25, lift = false, lf = 0, rf = 0;
+  if (walking) { const s = Math.sin(a.phase); la = .3 + s*.5; ra = .3 - s*.5; lf = Math.max(0, s)*3.5; rf = Math.max(0, -s)*3.5; }
+  else if (a.pose) { la = a.pose.la; ra = a.pose.ra; spread = a.pose.spread ?? .25; lift = !!a.pose.lift; }
+  if (isG) ra = 1.2;
   c.rotate(lean); c.translate(0, -hop);
   const leg = F.legs || F.body;
   if (lift) { seg(c, -3, -12, -9, -7, 3.6, leg, F.out); seg(c, -9, -7, -4, -4.5, 3.6, leg, F.out); }
@@ -1692,11 +1701,10 @@ function drawHumanoid(c, a){
   drawHat(c, a.hat, 0, top, a.t);
 }
 function drawDino(c, a){
-  const B = '#efe6cf', O = '#6b624d', walking = a.moving && !a.wob;
-  let tail = 0, head = 0, jaw = 0, legL = 0, legR = 0, hop = 0, lean = 0;
-  if (walking) { const s = Math.sin(a.phase); legL = s; legR = -s; hop = Math.abs(s)*1.2; head = Math.sin(a.phase*2)*.06; }
-  else if (a.pose) { tail = a.pose.tail || 0; head = a.pose.head || 0; jaw = a.pose.jaw || 0; legL = a.pose.legL || 0; lean = a.pose.lean || 0; }
-  if (a.wob) lean += Math.sin(a.t*48)*.08;
+  const B = '#efe6cf', O = '#6b624d', {walking, lean, hop, head} = figMotion(a);
+  let tail = 0, jaw = 0, legL = 0, legR = 0;
+  if (walking) { const s = Math.sin(a.phase); legL = s; legR = -s; }
+  else if (a.pose) { tail = a.pose.tail || 0; jaw = a.pose.jaw || 0; legL = a.pose.legL || 0; }
   c.scale(a.face || 1, 1); c.rotate(lean); c.translate(0, -hop);
   c.lineCap = 'round'; c.lineJoin = 'round';
   const bone = (fn, w) => { c.strokeStyle = O; c.lineWidth = w + 2.4; c.beginPath(); fn(); c.stroke(); c.strokeStyle = B; c.lineWidth = w; c.beginPath(); fn(); c.stroke(); };
@@ -2516,11 +2524,23 @@ function huntView(s0, W, H, top, bot, pad, ww, wh){
   oy = mh + WALL_H*s <= vh - 2*pad ? top + (vh - mh - WALL_H*s)/2 + WALL_H*s : clamp(oy, top + vh - pad - mh, top + pad + WALL_H*s);
   view = {s, ox, oy};
 }
-// The giant's eyes glow red in the dark, so you can see it coming.
+// How far the giant shakes sideways while a light holds it (it shakes harder just before it breaks out).
+function giantShake(G){
+  if (G.hs !== 1) return 0;
+  const own = G.ctrl === 'me' || G.ctrl === 'bot', st = (own ? G.strain : G.ls) || 0;
+  return Math.sin(G.t*70)*(.6 + 1.6*clamp(st/giantHold(G.stage || 0), 0, 1))*G.sz*.5;
+}
+// The giant's eyes glow red in the dark, so you can see it coming. The glow follows the same moves as
+// drawFigure and drawDino/drawHumanoid (shake, size, facing, lean, hop and head tilt), so it stays on the eyes.
 function giantEyes(G){
-  if (G.kind === 'dino') { const f = G.face || 1; return [[G.x + 12.1*G.sz*f, G.y - 29.6*G.sz]]; }
-  const y = G.y - (G.kind === 'knight' ? 30.9 : 30.2)*G.sz;
-  return [[G.x - 2.3*G.sz, y], [G.x + 2.3*G.sz, y]];
+  const M = figMotion(G), dino = G.kind === 'dino', deg = 180/Math.PI;
+  const m = new DOMMatrix().translateSelf(G.x + giantShake(G), G.y).scaleSelf(G.sz, G.sz);
+  if (dino) m.scaleSelf(G.face || 1, 1);
+  m.rotateSelf(M.lean*deg).translateSelf(0, -M.hop);
+  let pts;
+  if (dino) { m.translateSelf(10.5, -28.5 - M.head*5).rotateSelf(-M.head*.9*deg); pts = [[1.6, -1]]; }
+  else { const ey = G.kind === 'knight' ? -30.9 : -30.2; pts = [[-2.3, ey], [2.3, ey]]; }
+  return pts.map(([x, y]) => { const p = m.transformPoint(new DOMPoint(x, y)); return [p.x, p.y]; });
 }
 function drawGiantEyes(c, gv, mine){
   const G = world.giant; if (!G || G.gone) return;
