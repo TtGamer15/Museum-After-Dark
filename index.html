@@ -145,6 +145,8 @@ kbd{font:600 12px var(--ui);padding:1px 6px;border-radius:4px;border:1px solid c
 .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dust);font-weight:600}
 input.text{min-height:44px;padding:8px 12px;border-radius:6px;border:1px solid color-mix(in srgb,var(--marble) 25%,transparent);background:var(--night);color:var(--marble);font:500 16px var(--ui);-webkit-user-select:text;user-select:text;min-width:0;width:100%}
 input.text:focus{outline:2px solid var(--torch);outline-offset:1px}
+input.text.rude{border-color:#ff7a7a;outline-color:#ff7a7a}
+.namenote{margin:6px 2px 0;font-size:14px;color:#ff9a9a}
 input.code-in{text-transform:uppercase;letter-spacing:.14em;font-weight:600}
 .joinrow{display:flex;gap:8px;align-items:center}
 .joinrow input{flex:1}
@@ -439,6 +441,7 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
         <div class="field">
           <label class="lbl" for="nameIn">Your name</label>
           <input class="text" id="nameIn" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Type a name">
+          <p class="namenote" id="nameNote" role="status" hidden>That name isn't allowed. Try a different one!</p>
         </div>
         <button class="btn primary" id="btnCreate">Create a room</button>
         <div class="field">
@@ -660,10 +663,24 @@ const posesFor = k => k === 'dino' ? DINO_POSES : POSES;
 const SAVE_KEY = 'museum-after-dark-v1';
 const FID_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', FID_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/, FR_MAX = 50;
 const fidShow = id => id.slice(0, 4) + '-' + id.slice(4);
+// Rude names (swears, slurs, rude words, including spellings like "a55" or "f u c k") show as "Player".
+const RUDE_SUB = atob('ZnVjayxmdWssZnZjayxwaHVjayxzaGl0LGJpdGNoLGJpYXRjaCxjdW50LG5pZ2csbmlnYSxuaWdyLHdob3JlLHNsdXQscG9ybixwdXNzeSxwZW5pcyx2YWdpbmEsZmFnZ290LGZhZ290LHJldGFyZCxhc3Nob2xlLGRpY2toZWFkLG1vdGhlcmYsY29ja3N1Y2ssamFja2FzcyxiYXN0YXJkLHdhbmtlcix0d2F0LGZjayxraWxseW91cnNlbGYsaGl0bGVyLGRpbGRvLHNleHksb3JnYXNtLGR1bWJhc3MsZmF0YXNzLGJpZ2FzcyxzbWFydGFzcyxhc3N3aXBlLGFzc2hhdCx0ZXN0aWNsZSxib29iaWVz').split(','), RUDE_WORD = new Set(atob('YXNzLGFyc2UsZGljayxkaWssY29jayx0aXQsdGl0cyx0aXR0eSx0aXR0aWVzLGJvb2IsYm9vYnMsc2V4LGN1bSxhbmFsLHJhcGUscmFwaXN0LG5hemksa3lzLG51ZGUsbnVkZXMsbmFrZWQsaG9ybnksYm9uZXIscGlzcyxmYWcsZmFncyxra2ssc3RmdSx3dGYsZ3RmbyxtaWxmLG5pcHBsZSxuaXBwbGVzLHRob3QsaG9lLGhvZXM=').split(','));
+const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', 9: 'g', '@': 'a', '$': 's', '!': 'i', '|': 'i', '+': 't', '€': 'e' };
+function isRudeName(v) {
+  const raw = String(v || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+  const de = (s) => s.replace(/[0-9@$!|+€]/g, (ch) => LEET[ch] || ch);
+  const sq = de(raw.toLowerCase()).replace(/[^a-z]/g, ''), sqC = sq.replace(/(.)\1+/g, '$1');
+  for (const w of RUDE_SUB) { if (sq.includes(w)) return true; const wc = w.replace(/(.)\1+/g, '$1'); if (wc.length >= 4 && sqC.includes(wc)) return true; }
+  for (let t of de(raw.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()).split(/[^a-z]+/)) {
+    if (!t) continue; t = t.replace(/(.)\1\1+/g, '$1$1');
+    if (RUDE_WORD.has(t) || (t.length > 3 && t.endsWith('s') && RUDE_WORD.has(t.slice(0, -1)))) return true;
+  }
+  return false;
+}
 function cleanName(v, max = 14){
   if (typeof v !== 'string') return 'Player';
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
-  return s || 'Player';
+  return s && !isRudeName(s) ? s : 'Player';
 }
 function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', mode:'nights', huntAs:'guard', bestH:0, starH:0, bestHG:0, starHG:0, name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
@@ -4244,7 +4261,8 @@ $('volIn').addEventListener('input', () => { save.vol = clamp(+$('volIn').value/
 $('btnSilent').addEventListener('click', () => { save.silentOk = !save.silentOk; persist(); applyAudioSession(true); if (!save.silentOk && AU.tag) { try { AU.tag.pause(); AU.tag.removeAttribute('src'); } catch (e) {} AU.tag = null; } AU.unlocked = false; audioInit(); syncSoundButtons(); });
 // Browsers only start sound after you touch, click or press something.
 for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, () => audioInit(), {capture:true, passive:true});
-$('nameIn').addEventListener('input', () => { const v = $('nameIn').value; save.name = v.trim() ? cleanName(v) : ''; persist(); frTickSoon(); });
+$('nameIn').addEventListener('input', () => { const v = $('nameIn').value, bad = isRudeName(v); save.name = v.trim() && !bad ? cleanName(v) : ''; persist(); frTickSoon(); $('nameIn').classList.toggle('rude', bad); $('nameNote').hidden = !bad; });
+$('nameIn').addEventListener('change', () => { if (!isRudeName($('nameIn').value)) return; $('nameIn').value = ''; $('nameIn').classList.remove('rude'); save.name = ''; persist(); frTickSoon(); $('nameNote').hidden = false; });
 $('btnCreate').addEventListener('click', () => { audioInit(); joinRoom(newCode(), true); });
 $('btnJoin').addEventListener('click', () => { audioInit(); joinRoom($('codeIn').value, false); });
 $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('codeIn').value, false); });
