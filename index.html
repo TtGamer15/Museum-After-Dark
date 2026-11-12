@@ -99,6 +99,20 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,8.5vw,46px);l
 .newtag{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;background:#c63c58;color:#fff;font-size:10px;font-weight:700;letter-spacing:.04em;vertical-align:2px;text-transform:uppercase}
 .eye-red{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff3448;box-shadow:0 0 6px #ff3448,0 0 2px #ff3448}
 .hunt-card .night-no{color:#ff5a6c}
+/* Turkey Rolls update */
+.night.special .night-no{font-family:var(--ui);font-size:20px}
+.night.special:not([aria-pressed="true"]){border-color:color-mix(in srgb,#d9772b 45%,transparent)}
+.exhibit.feature{grid-column:1/-1;flex-direction:row;justify-content:center;gap:14px;padding:6px 14px}
+.exhibit.feature .txt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.exhibit.feature small{text-align:left}
+.pick{position:relative}
+.pick-new{position:absolute;top:2px;right:4px;font-size:13px;line-height:1}
+.beta-tag{display:inline-block;margin-left:10px;padding:2px 8px 3px;border-radius:6px;background:var(--brass);color:var(--night);font:700 14px var(--ui);letter-spacing:.08em;vertical-align:6px;text-transform:uppercase}
+.whatsnew summary{color:var(--torch)}
+#hudGemStat.rolls .gem-ico{width:14px;height:10px;transform:none;border-radius:50%;background:radial-gradient(circle at 38% 35%,#f6d394,#d4913f 60%,#8a5420);clip-path:none}
+.whatsnew ul{margin:10px 0 0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.whatsnew li{display:grid;grid-template-columns:1.6em 1fr;gap:6px;line-height:1.35}
+.whatsnew .em{font-size:16px;line-height:1.3}
 .seg.nightpick button{font-family:var(--display);font-weight:800}
 
 .exhibits{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
@@ -270,8 +284,18 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
     <section class="panel" id="menu">
       <div class="card">
         <p class="eyebrow">The playground freeze game, after hours</p>
-        <h1>Museum After Dark</h1>
+        <h1>Museum After Dark<span class="beta-tag" id="betaTag" hidden>Beta</span></h1>
         <p class="lede">When the lights go out, the exhibits come alive. Sneak around while the night guard isn't looking, or be the guard and catch them moving.</p>
+        <p class="muted small-text" id="betaNote" hidden>This is the beta test copy. It has its own save and its own online rooms, so nothing here changes the real game.</p>
+        <details class="how whatsnew" id="whatsNew">
+          <summary>🦃 What's new: the Turkey Rolls update</summary>
+          <ul>
+            <li><span class="em">🦖</span><span><b>Turkey Rex:</b> the dino skeleton, dressed up for Thanksgiving. Play as it, or meet a giant one in Huntdown. Gobble gobble!</span></li>
+            <li><span class="em">🍞</span><span><b>The Feast Hall:</b> a special Thanksgiving night. Sneak around a giant feast table and grab the golden dinner rolls before sunrise.</span></li>
+            <li><span class="em">🎩</span><span><b>5 new hats:</b> Pilgrim hat, Turkey hat, Leaf crown, Chef hat and Pumpkin pie hat, plus an Acorn necklace.</span></li>
+            <li><span class="em">🍂</span><span><b>In November,</b> computer exhibits and guards dress up for Thanksgiving too.</span></li>
+          </ul>
+        </details>
         <hr class="rule">
         <h2 class="section-label">Game mode</h2>
         <div class="seg" role="group" aria-label="Game mode">
@@ -359,7 +383,7 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
         </details>
         <a class="btn ghost yt" id="ytLink" href="https://www.youtube.com/@museum_after_dark" target="_blank" rel="noopener">
           <svg class="yt-play" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M9.8 7.6v8.8l7-4.4z"/></svg>
-          <span><b>Watch on YouTube</b><small>@museum_after_dark · <span class="nowrap">new updates every Tuesday</span></small></span>
+          <span><b>Watch on YouTube</b><small>@museum_after_dark · <span class="nowrap">new updates every Thursday</span></small></span>
         </a>
       </div>
     </section>
@@ -526,15 +550,17 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
 (() => {
 'use strict';
 const IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
+// BETA = the test copy at /Museum-After-Dark/beta/. It keeps its own save and its own online channel, so testing never touches the real game.
+const BETA = /*BETA*/false;
 
 /* ---------- constants ---------- */
 const T = 40, WALL_H = 14, PR = 11, HEAR = 115, TURN = 3.4, RUN = 138, TIP = 70, SETTLE = 0.16, STICK_R = 46;
 const GUARD_SPEED = 104, GUARD_TURN = 5.2, HEAT_MAX = 4, HEAT_OFF = 2, BOT_RUN = 102, BOT_TIP = 56;
 const MAX_ROOM = 8, MAX_EX = 8, CHANCES = 3;
-const SOLO_BOTS = [2,3,3,3,4], BOT_REACT = [.5,.44,.38,.33,.3], BOT_NOTICE = [.4,.5,.6,.68,.76];
-const BLOCK = new Set(['#','w','P','G','r','D']);
-const OPAQUE = new Set(['#','w','P','D']);
-const ROMAN = ['I','II','III','IV','V'];
+const SOLO_BOTS = [2,3,3,3,4,3], BOT_REACT = [.5,.44,.38,.33,.3,.36], BOT_NOTICE = [.4,.5,.6,.68,.76,.62];
+const BLOCK = new Set(['#','w','P','G','r','D','F','k']);
+const OPAQUE = new Set(['#','w','P','D','k']);
+const ROMAN = ['I','II','III','IV','V','VI'];
 const GEM_COLORS = ['#64e3d1','#ff7fab','#ffc861','#ad8fff'];
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -631,7 +657,28 @@ const LEVELS = [
     guards:[
       {path:[[1,4,1.4],[8,4,1.8,90],[16,4,1.4]], mode:'pingpong', speed:64, range:200, cone:0.48},
       {path:[[1,6,1],[16,6,1.2],[16,8,1],[1,8,1.2]], mode:'loop', speed:62, range:200, cone:0.48},
-      {path:[[12,1,1],[16,1,1],[16,3,1],[12,3,1]], mode:'loop', speed:56, range:180, cone:0.46}] }
+      {path:[[12,1,1],[16,1,1],[16,3,1],[12,3,1]], mode:'loop', speed:56, range:180, cone:0.46}] },
+  // Thanksgiving special (the Turkey Rolls update): open to everyone, not part of the five-night run.
+  // F = the feast table (blocks walking, but flashlights shine right over it), k = hay bales with pumpkins (block light).
+  { name:'The Feast Hall', wing:'Special exhibit · Thanksgiving', duration:165, peek:0.12, special:true, feast:true,
+    blurb:'The museum set up a giant Thanksgiving feast for tomorrow. Golden dinner rolls are scattered around the hall, and two guards keep circling the table.',
+    tip:'<b>Tip:</b> The table is low, so flashlights shine right over it. Hide behind the hay bales instead.',
+    map:[
+      '####w#####w#####w#',
+      '#................#',
+      '#.k...*....*...k.#',
+      '#................#',
+      '#..FFFFFFFFFFFF..#',
+      '#*.FFFFFFFFFFFF.*#',
+      '#................#',
+      '#....k......k....#',
+      '#.P............P.#',
+      '#.....*..S.......#',
+      '#................#',
+      '##################'],
+    guards:[
+      {path:[[2,3,1.2],[15,3,1.2],[15,6,1.2],[2,6,1.2]], mode:'loop', speed:60, range:200, cone:0.48},
+      {path:[[1,1,1.4],[16,1,1.4]], mode:'pingpong', speed:56, range:190, cone:0.46}] }
 ];
 /*END*/
 
@@ -639,9 +686,18 @@ const EXHIBITS = [
   {id:'statue', name:'Marble Statue', note:'Carved marble, about 120 BCE'},
   {id:'knight', name:'Suit of Armor', note:'Steel plate, about 1480'},
   {id:'mummy',  name:'Mummy',         note:'Linen wrappings, about 1300 BCE'},
-  {id:'dino',   name:'Dino Skeleton', note:'Fossil bone, 68 million years old'}
+  {id:'dino',   name:'Dino Skeleton', note:'Fossil bone, 68 million years old'},
+  {id:'turkey', name:'Turkey Rex',    note:'The dino skeleton, dressed up for Thanksgiving', isNew:true, feature:true}
 ];
 const EX_IDS = EXHIBITS.map(e => e.id);
+const BASE_EX = ['statue', 'knight', 'mummy', 'dino'];
+// The five main nights; the Feast Hall comes after them as a special.
+const MAIN_N = LEVELS.filter(L => !L.special).length, FEAST_I = LEVELS.findIndex(L => L.feast);
+const nightName = i => LEVELS[i] && LEVELS[i].special ? 'Thanksgiving night' : `Night ${ROMAN[i]}`;
+// November is Thanksgiving time: computer exhibits dress up for it. (?feast=1 or ?feast=0 tries it out any month.)
+const FEAST = (() => { const q = /[?&]feast=([01])/.exec(location.search || ''); return q ? q[1] === '1' : new Date().getMonth() === 10; })();
+const botKind = k => { const b = BASE_EX[(k + 1) % 4]; return b === 'dino' && FEAST && (k >> 2) % 2 === 0 ? 'turkey' : b; };
+const GIANT_KINDS = FEAST ? EX_IDS : BASE_EX;
 const exName = id => (EXHIBITS.find(e => e.id === id) || EXHIBITS[0]).name;
 const POSES = [
   {la:2.7, ra:2.7, spread:.6},
@@ -657,10 +713,10 @@ const DINO_POSES = [
   {tail:1.3, head:0, legL:-.7},
   {tail:.4, head:.9, jaw:.6, lean:-.1}
 ];
-const posesFor = k => k === 'dino' ? DINO_POSES : POSES;
+const posesFor = k => k === 'dino' || k === 'turkey' ? DINO_POSES : POSES;
 
 /* ---------- save data ---------- */
-const SAVE_KEY = 'museum-after-dark-v1';
+const SAVE_KEY = BETA ? 'museum-after-dark-beta' : 'museum-after-dark-v1';
 const FID_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', FID_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/, FR_MAX = 50;
 const fidShow = id => id.slice(0, 4) + '-' + id.slice(4);
 // Rude names (swears, slurs, rude words, including spellings like "a55" or "f u c k") show as "Player".
@@ -682,12 +738,14 @@ function cleanName(v, max = 14){
   const s = v.replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, max);
   return s && !isRudeName(s) ? s : 'Player';
 }
-function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0], bestG:[0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', mode:'nights', huntAs:'guard', bestH:0, starH:0, bestHG:0, starHG:0, name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
+function saveDefaults(){ return {lookEx:{hat:'none', jew:'none'}, lookG:{hat:'none', jew:'none'}, best:[0,0,0,0,0,0], bestG:[0,0,0,0,0,0], exhibit:'statue', sound:true, mus:true, voices:true, mstyle:'auto', vol:.7, silentOk:false, play:'ex', mode:'nights', huntAs:'guard', bestH:0, starH:0, bestHG:0, starHG:0, name:'', fid:'', friends:[], fOut:[], fBlock:[], nb:false}; }
 let save = saveDefaults();
 function loadSave(seed){
   const b = saveDefaults();
   let s = seed || null;
   if (!s) { try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { s = null; } }
+  // The first time the beta opens, it starts from your real save: stars, outfits, name and friends.
+  if (!s && BETA && !seed) { try { s = JSON.parse(localStorage.getItem('museum-after-dark-v1') || 'null'); } catch (e) { s = null; } }
   if (s && typeof s === 'object') {
     const stars = a => b.best.map((v, i) => Math.max(0, Math.min(3, (Array.isArray(a) ? a[i] : 0) | 0)));
     b.best = stars(s.best); b.bestG = stars(s.bestG);
@@ -824,6 +882,8 @@ const SFX = {
   win(){ [523,659,784,1047].forEach((f,i) => tone(f,.22,'triangle',.07,i*.11)); },
   stomp(v=1){ tone(48,.26,'sine',.12*v,0,34); tone(104,.07,'triangle',.03*v); },
   roar(){ tone(150,.8,'sawtooth',.045,0,55); tone(104,.7,'square',.025,.04,44); tone(230,.35,'sawtooth',.02,0,90); },
+  // gobble gobble! (low = the giant Turkey Rex)
+  gobble(low){ const k = low ? .5 : 1; for (let i = 0; i < 8; i++) tone((i % 2 ? 380 : 560)*k*(1 - i*.02), .075, 'square', low ? .045 : .028, i*.062, (i % 2 ? 300 : 470)*k); if (low) tone(150, .7, 'sawtooth', .03, 0, 60); },
   grow(){ [131,117,98].forEach((f,i) => tone(f,.32,'sawtooth',.035,i*.14,f*.75)); },
   zap(){ tone(1320,.12,'triangle',.035,0,880); tone(660,.2,'sine',.03,.03); },
   lose(){ [392,330,262].forEach((f,i) => tone(f,.3,'triangle',.06,i*.16)); }
@@ -855,30 +915,31 @@ function buildWorld(i, o={}){
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const ch = grid[y][x];
     if (ch === 'S') { sx = x; sy = y; grid[y][x] = '.'; }
-    else if (ch === '*') { gems.push({x:(x+.5)*T, y:(y+.5)*T, got:false, carrier:null, seed:Math.random()*6.28, color:GEM_COLORS[gems.length % GEM_COLORS.length]}); avoid.add(x+','+y); grid[y][x] = '.'; }
+    else if (ch === '*') { gems.push({x:(x+.5)*T, y:(y+.5)*T, got:false, carrier:null, seed:Math.random()*6.28, color:L.feast ? '#f2c46d' : GEM_COLORS[gems.length % GEM_COLORS.length]}); avoid.add(x+','+y); grid[y][x] = '.'; }
   }
   const peds = pedCells(grid, W, H, sx, sy, Math.max(1, o.nPeds || 1), avoid).map(([x, y]) => ({x:(x+.5)*T, y:(y+.5)*T}));
-  world = {i, L, W, H, grid, peds, gems, guards:[], exhibits:[], demo:!!o.demo, transposed:false, dino:[], moons:[]};
+  world = {i, L, W, H, grid, peds, gems, guards:[], exhibits:[], demo:!!o.demo, transposed:false, dino:[], moons:[], tables:[]};
   indexStatics();
 }
 function cell(x, y){ return (x < 0 || y < 0 || x >= world.W || y >= world.H) ? '#' : world.grid[y][x]; }
 const blocks = (x, y) => BLOCK.has(cell(x, y));
 const opaque = (x, y) => OPAQUE.has(cell(x, y));
 function indexStatics(){
-  const seen = new Set(); world.dino = []; world.moons = [];
+  const seen = new Set(); world.dino = []; world.moons = []; world.tables = [];
   for (let y = 0; y < world.H; y++) for (let x = 0; x < world.W; x++) {
     const ch = world.grid[y][x];
-    if (ch === 'D' && !seen.has(x+','+y)) {
+    // big things drawn in one piece: the skeleton display (D) and the feast table (F)
+    if ((ch === 'D' || ch === 'F') && !seen.has(x+','+y)) {
       let x0=x, x1=x, y0=y, y1=y; const stack=[[x,y]]; seen.add(x+','+y);
       while (stack.length) {
         const [cx,cy] = stack.pop();
         x0=Math.min(x0,cx); x1=Math.max(x1,cx); y0=Math.min(y0,cy); y1=Math.max(y1,cy);
         for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
           const nx=cx+dx, ny=cy+dy, k=nx+','+ny;
-          if (!seen.has(k) && cell(nx,ny) === 'D') { seen.add(k); stack.push([nx,ny]); }
+          if (!seen.has(k) && cell(nx,ny) === ch) { seen.add(k); stack.push([nx,ny]); }
         }
       }
-      world.dino.push({x0,x1,y0,y1});
+      (ch === 'D' ? world.dino : world.tables).push({x0,x1,y0,y1});
     }
     if (ch === 'w') {
       for (const [dx,dy] of [[0,1],[1,0],[-1,0],[0,-1]]) {
@@ -937,7 +998,12 @@ function makeAIGuard(slot){
 }
 const cleanLook = l => ({hat:HAT_IDS.includes(l && l.hat) ? l.hat : 'none', jew:JEWEL_IDS.includes(l && l.jew) ? l.jew : 'none'});
 // Bot exhibits dress up too; each one's outfit comes from its number, so every player sees the same.
-function botLook(k){ const hats = ['party', 'none', 'crown', 'cowboy', 'bow', 'wizard', 'beanie', 'top', 'propeller', 'pirate']; return {hat:hats[k % hats.length], jew:JEWEL_IDS[(k*3 + 1) % JEWEL_IDS.length]}; }
+function botLook(k){
+  // in November they mostly wear the new Thanksgiving hats
+  const hats = FEAST ? ['pilgrim', 'party', 'leaves', 'turkeyhat', 'crown', 'chef', 'pie', 'cowboy', 'pilgrim', 'leaves'] : ['party', 'none', 'crown', 'cowboy', 'bow', 'wizard', 'beanie', 'top', 'propeller', 'pirate'];
+  const jews = FEAST ? ['acorns', 'chain', 'pearls', 'acorns', 'medal', 'ruby'] : ['chain', 'pearls', 'ruby', 'medal', 'hoops', 'bracelets', 'bling', 'none'];
+  return {hat:hats[k % hats.length], jew:jews[(k*3 + 1) % jews.length]};
+}
 function makeHumanGuard(slot, ctrl, id, name, look){
   const {d, path, start} = guardPath(slot), p = path[start];
   const cx = world.W*T/2, cy = world.H*T/2, a0 = Math.atan2(cy - p.y, cx - p.x);
@@ -1381,6 +1447,7 @@ function fit(){
 const wt = c => c.setTransform(view.s, 0, 0, view.s, view.ox, view.oy);
 
 function drawFloor(c){
+  if (world.L && world.L.feast) { drawFeastFloor(c); return; }
   for (let y = 0; y < world.H; y++) for (let x = 0; x < world.W; x++) {
     c.fillStyle = ((x + y) & 1) ? '#1b2147' : '#1f2650';
     c.fillRect(x*T, y*T, T, T);
@@ -1391,6 +1458,40 @@ function drawFloor(c){
     if (h > .55) { c.moveTo(x*T + h*20, y*T + 4); c.quadraticCurveTo(x*T + 22, y*T + 18 + h*8, x*T + 36, y*T + 30 + h*6); }
   }
   c.stroke();
+}
+// The Feast Hall: wooden floorboards with autumn leaves blown in.
+const LEAF_COLS = ['#d9772b', '#c2452f', '#e8b04a', '#9a5a2a'];
+function drawFeastFloor(c){
+  const along = !world.transposed;   // boards run the long way across the hall
+  for (let y = 0; y < world.H; y++) for (let x = 0; x < world.W; x++) {
+    const b = along ? y : x;
+    c.fillStyle = (b & 1) ? '#2a2140' : '#2e2446'; c.fillRect(x*T, y*T, T, T);
+  }
+  c.strokeStyle = 'rgba(10,8,24,.45)'; c.lineWidth = 1; c.beginPath();
+  for (let y = 0; y < world.H; y++) for (let x = 0; x < world.W; x++) {
+    const h = hash(x + 5, y + 2), cx = x*T, cy = y*T;
+    if (along) { c.moveTo(cx, cy + .5); c.lineTo(cx + T, cy + .5); if (h > .5) { c.moveTo(cx + h*T, cy); c.lineTo(cx + h*T, cy + T); } }
+    else { c.moveTo(cx + .5, cy); c.lineTo(cx + .5, cy + T); if (h > .5) { c.moveTo(cx, cy + h*T); c.lineTo(cx + T, cy + h*T); } }
+  }
+  c.stroke();
+  for (let y = 0; y < world.H; y++) for (let x = 0; x < world.W; x++) {
+    const h = hash(x + 13, y + 29);
+    if (h < .62 || world.grid[y][x] !== '.') continue;
+    const n = h > .9 ? 2 : 1;
+    for (let k = 0; k < n; k++) {
+      const u = hash(x*3 + k, y*7 + 1), v = hash(x + 9*k, y*5 + 3);
+      c.globalAlpha = .8; leaf(c, x*T + 6 + u*28, y*T + 6 + v*28, u*6.28, 5.5 + v*2.5, LEAF_COLS[(x + y + k) % 4]); c.globalAlpha = 1;
+    }
+  }
+}
+// a little autumn leaf: base at (x, y), pointing in direction ang
+function leaf(c, x, y, ang, len, col){
+  c.save(); c.translate(x, y); c.rotate(ang);
+  const w = len*.42;
+  c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(len*.5, -w, len, 0); c.quadraticCurveTo(len*.5, w, 0, 0); c.closePath();
+  c.fillStyle = col; c.strokeStyle = 'rgba(60,24,8,.75)'; c.lineWidth = .5; c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(len*.85, 0); c.stroke();
+  c.restore();
 }
 function drawMoons(c){
   for (const m of world.moons) {
@@ -1444,6 +1545,16 @@ function drawCell(c, ch, cx, cy){
     c.strokeStyle = '#8a6a2f'; c.lineWidth = 3.4; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 15); c.stroke();
     c.strokeStyle = '#e2b860'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(px - .6, py); c.lineTo(px - .6, py - 15); c.stroke();
     c.fillStyle = '#e8bf63'; c.beginPath(); c.arc(px, py - 16, 3, 0, 7); c.fill();
+  } else if (ch === 'k') {
+    const h = 15, i = 5;
+    c.fillStyle = '#8a6526'; c.fillRect(x + i, y + T - i - h, T - 2*i, h);
+    c.fillStyle = '#c99a42'; c.fillRect(x + i, y + i - h, T - 2*i, T - 2*i);
+    c.strokeStyle = 'rgba(110,74,20,.55)'; c.lineWidth = .8; c.beginPath();
+    for (let k = 0; k < 7; k++) { const sx = x + i + 2 + k*4.1, j = hash(cx*7 + k, cy) * 4; c.moveTo(sx, y + i - h + 2 + j); c.lineTo(sx + 2, y + T - i - h - 3 + j*.3); }
+    c.stroke();
+    c.strokeStyle = '#5a3a12'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x + 13, y + i - h); c.lineTo(x + 13, y + T - i); c.moveTo(x + T - 13, y + i - h); c.lineTo(x + T - 13, y + T - i); c.stroke();
+    drawPumpkin(c, x + T/2 - 3, y + T/2 - h + 1, 7.5, hash(cx + 4, cy + 9));
+    if (hash(cx + 1, cy + 3) > .45) drawPumpkin(c, x + T/2 + 8, y + T/2 - h + 4, 4.5, .3);
   } else if (ch === 'D') {
     c.fillStyle = '#4a4033'; c.fillRect(x, y + T - 8, T, 8);
     c.fillStyle = '#6d604b'; c.fillRect(x, y - 8, T, T);
@@ -1517,8 +1628,95 @@ function drawSauropod(c, cx, base, w, flip){
   c.strokeStyle = O; c.lineWidth = 1.6; c.beginPath(); c.moveTo(102,-117); c.lineTo(112,-120); c.stroke();
   c.restore();
 }
+function drawPumpkin(c, x, y, r, h){
+  c.save(); c.translate(x, y);
+  c.fillStyle = h > .7 ? '#e0892e' : '#d9772b'; c.strokeStyle = '#6b3410'; c.lineWidth = .9;
+  c.beginPath(); c.ellipse(0, 0, r, r*.78, 0, 0, 7); c.fill(); c.stroke();
+  c.strokeStyle = 'rgba(107,52,16,.6)'; c.beginPath(); c.ellipse(0, 0, r*.45, r*.76, 0, 0, 7); c.moveTo(0, -r*.78); c.lineTo(0, r*.78); c.stroke();
+  c.fillStyle = 'rgba(255,220,150,.35)'; c.beginPath(); c.ellipse(-r*.45, -r*.3, r*.22, r*.3, -.3, 0, 7); c.fill();
+  c.strokeStyle = '#4a6a2a'; c.lineWidth = 1.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -r*.7); c.quadraticCurveTo(r*.15, -r*1.15, r*.4, -r*1.2); c.stroke();
+  c.restore();
+}
+// The Thanksgiving table: a long tablecloth with an orange runner and a whole feast down the middle.
+function drawTable(c, reg){
+  const H = 9, x0 = reg.x0*T + 3, y0 = reg.y0*T + 3, x1 = (reg.x1 + 1)*T - 3, y1 = (reg.y1 + 1)*T - 3, w = x1 - x0, h = y1 - y0;
+  const horiz = w >= h;
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(x0 + 2, y1 - 2, w, 5);
+  c.fillStyle = '#b9a984'; c.fillRect(x0, y1 - H, w, H);
+  c.fillStyle = '#9d8d68'; for (let sx = x0; sx < x1 - 1; sx += 8) { c.beginPath(); c.arc(sx + 4, y1, 4, 0, Math.PI); c.fill(); }
+  c.fillStyle = '#e9dcbc'; c.fillRect(x0, y0 - H, w, h);
+  c.strokeStyle = 'rgba(120,100,60,.35)'; c.lineWidth = 1; c.strokeRect(x0 + .5, y0 - H + .5, w - 1, h - 1);
+  c.fillStyle = '#b3402c';
+  if (horiz) c.fillRect(x0 + 6, y0 - H + h/2 - 7, w - 12, 14); else c.fillRect(x0 + w/2 - 7, y0 - H + 6, 14, h - 12);
+  c.fillStyle = '#e8b04a';
+  if (horiz) { c.fillRect(x0 + 6, y0 - H + h/2 - 7, w - 12, 1.5); c.fillRect(x0 + 6, y0 - H + h/2 + 5.5, w - 12, 1.5); }
+  else { c.fillRect(x0 + w/2 - 7, y0 - H + 6, 1.5, h - 12); c.fillRect(x0 + w/2 + 5.5, y0 - H + 6, 1.5, h - 12); }
+  // the feast, along the middle of the table: the turkey in the center
+  const L = horiz ? w : h, n = Math.max(3, Math.round(L/30)), mid = (n - 1)/2;
+  const menu = ['pie', 'corn', 'candle', 'cran', 'rolls', 'pumpkin', 'potato', 'candle'];
+  const spots = [];
+  for (let k = 0; k < n; k++) {
+    const u = (k + .5)/n, d = Math.abs(k - mid);
+    const item = d < .6 ? 'turkey' : menu[(Math.round(d) - 1 + (k < mid ? 0 : 3)) % menu.length];
+    const px = horiz ? x0 + u*w : x0 + w/2, py = horiz ? y0 - H + h/2 : y0 - H + u*h;
+    const side = (k % 2 ? 1 : -1)*(horiz ? h*.2 : w*.2);
+    spots.push([item, horiz ? px : px + (item === 'turkey' ? 0 : side), horiz ? py + (item === 'turkey' ? 4 : side) : py + 4]);
+  }
+  spots.sort((a, b) => a[2] - b[2]);
+  for (const [item, px, py] of spots) drawFood(c, item, px, py);
+}
+function drawFood(c, item, x, y){
+  c.save(); c.translate(x, y); c.scale(1.45, 1.45); c.lineJoin = 'round'; c.lineCap = 'round';
+  const plate = (r) => { c.fillStyle = '#f7f3ea'; c.strokeStyle = '#a49c88'; c.lineWidth = .8; c.beginPath(); c.ellipse(0, 1, r, r*.55, 0, 0, 7); c.fill(); c.stroke(); };
+  if (item === 'turkey') { plate(13); c.scale(1.15, 1.15); drawHat(c, 'turkeyhat', 0, 3, 0); }
+  else if (item === 'pie') { c.scale(.85, .85); drawHat(c, 'pie', 0, 2, 0); }
+  else if (item === 'corn') {
+    for (const [sx, dy] of [[-1, 0], [1, 1.6]]) {
+      c.save(); c.translate(sx*2.2, dy); c.rotate(sx*.18);
+      c.fillStyle = '#7f9a3e'; c.strokeStyle = '#3e5418'; c.lineWidth = .6;
+      c.beginPath(); c.moveTo(5, 0); c.quadraticCurveTo(8.5, -2.6, 9.5, -1); c.quadraticCurveTo(8, .2, 5, 0); c.fill(); c.stroke();
+      c.beginPath(); c.moveTo(5, 0); c.quadraticCurveTo(8.5, 2.6, 9.5, 1.2); c.quadraticCurveTo(8, -.2, 5, 0); c.fill(); c.stroke();
+      c.fillStyle = '#f0c548'; c.strokeStyle = '#9a7418'; c.beginPath(); c.ellipse(0, 0, 6, 2.4, 0, 0, 7); c.fill(); c.stroke();
+      c.fillStyle = '#c9961f'; for (let i = -4; i <= 3.5; i += 1.6) for (const j of [-1, 0, 1]) { c.beginPath(); c.arc(i + (j & 1)*.8, j*1.05, .32, 0, 7); c.fill(); }
+      c.restore();
+    }
+  } else if (item === 'candle') {
+    c.fillStyle = '#c99a42'; c.beginPath(); c.ellipse(0, 1, 4, 2, 0, 0, 7); c.fill();
+    c.fillStyle = '#f5ecd6'; c.strokeStyle = '#a49c88'; c.lineWidth = .7; c.fillRect(-1.6, -9, 3.2, 10); c.strokeRect(-1.6, -9, 3.2, 10);
+    const f = Math.sin((game.t || 0)*13 + x)*.6;
+    const g = c.createRadialGradient(0, -12, 0, 0, -12, 9); g.addColorStop(0, 'rgba(255,210,120,.45)'); g.addColorStop(1, 'rgba(255,210,120,0)'); c.fillStyle = g; c.fillRect(-9, -21, 18, 18);
+    c.fillStyle = '#ffcf5a'; c.beginPath(); c.moveTo(-1.6, -10); c.quadraticCurveTo(f, -16, 1.6, -10); c.quadraticCurveTo(0, -8.5, -1.6, -10); c.fill();
+  } else if (item === 'cran') {
+    c.fillStyle = '#e8e2d4'; c.strokeStyle = '#8f887a'; c.lineWidth = .8; c.beginPath(); c.moveTo(-5, -3); c.lineTo(5, -3); c.lineTo(3.6, 1.5); c.lineTo(-3.6, 1.5); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#a8162e'; c.beginPath(); c.ellipse(0, -3, 5, 1.6, 0, 0, 7); c.fill();
+    c.fillStyle = '#d63a52'; c.beginPath(); c.arc(-1.6, -3.4, .9, 0, 7); c.arc(1.4, -3.1, .8, 0, 7); c.fill();
+  } else if (item === 'rolls') {
+    c.fillStyle = '#9a6a2e'; c.strokeStyle = '#4a2e10'; c.lineWidth = .8; c.beginPath(); c.moveTo(-7, -2); c.lineTo(7, -2); c.lineTo(5.4, 2.4); c.lineTo(-5.4, 2.4); c.closePath(); c.fill(); c.stroke();
+    for (const [rx, ry] of [[-3.4, -3], [0, -4.2], [3.4, -3]]) drawRollShape(c, rx, ry, .42);
+  } else if (item === 'pumpkin') drawPumpkin(c, 0, -3, 6, .8);
+  else if (item === 'potato') {
+    plate(7); c.fillStyle = '#f3ecdc'; c.strokeStyle = '#b5ab92'; c.lineWidth = .7; c.beginPath(); c.ellipse(0, -1.4, 5, 3.4, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#f4d35e'; c.fillRect(-1.2, -4.6, 2.4, 1.6);
+  }
+  c.restore();
+}
+// A golden dinner roll (the Feast Hall's "gems"). (x, y) is its middle.
+function drawRollShape(c, x, y, k){
+  c.save(); c.translate(x, y); c.scale(k, k);
+  c.fillStyle = '#d4913f'; c.strokeStyle = '#6b3d14'; c.lineWidth = 1.2;
+  c.beginPath(); c.ellipse(0, 0, 9, 6.5, 0, 0, 7); c.fill(); c.stroke();
+  c.fillStyle = '#efbd70'; c.beginPath(); c.ellipse(-1.5, -2, 6, 3.2, -.15, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(107,61,20,.7)'; c.lineWidth = 1.1; c.beginPath(); c.moveTo(-4, -4.5); c.quadraticCurveTo(-2.5, 0, -3.5, 4.5); c.moveTo(1, -5.5); c.quadraticCurveTo(2.5, 0, 1.5, 5.5); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(-3, -3, 1.8, .9, -.3, 0, 7); c.fill();
+  c.restore();
+}
+function drawRollAt(c, x, y, k){ drawRollShape(c, x, y, k*.85); }
 function drawGem(c, gm){
   const t = game.t, x = gm.x, y = gm.y - 11 + Math.sin(t*3 + gm.seed)*2.5;
+  if (world.L && world.L.feast) {
+    c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(x, gm.y + 1, 6.5, 2.4, 0, 0, 7); c.fill();
+    drawRollShape(c, x, y, .85); return;
+  }
   c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(x, gm.y + 1, 6, 2.4, 0, 0, 7); c.fill();
   c.fillStyle = gm.color; c.strokeStyle = 'rgba(10,14,36,.6)'; c.lineWidth = 1;
   c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x + 7, y - 2); c.lineTo(x, y + 8); c.lineTo(x - 7, y - 2); c.closePath(); c.fill(); c.stroke();
@@ -1534,12 +1732,15 @@ const FIG = {
 };
 /* ---------- hats & jewelry (drawn in figure units; a head is about 12 wide) ---------- */
 const HATS = [
-  {id:'none', name:'No hat'}, {id:'top', name:'Top hat'}, {id:'crown', name:'Crown'}, {id:'party', name:'Party hat'},
+  {id:'none', name:'No hat'},
+  {id:'pilgrim', name:'Pilgrim hat', isNew:true}, {id:'turkeyhat', name:'Turkey hat', isNew:true}, {id:'leaves', name:'Leaf crown', isNew:true},
+  {id:'chef', name:'Chef hat', isNew:true}, {id:'pie', name:'Pumpkin pie hat', isNew:true},
+  {id:'top', name:'Top hat'}, {id:'crown', name:'Crown'}, {id:'party', name:'Party hat'},
   {id:'cowboy', name:'Cowboy hat'}, {id:'beanie', name:'Beanie'}, {id:'wizard', name:'Wizard hat'},
   {id:'propeller', name:'Propeller cap'}, {id:'bow', name:'Big bow'}, {id:'pirate', name:'Pirate hat'}
 ];
 const JEWELS = [
-  {id:'none', name:'None'}, {id:'chain', name:'Gold chain'}, {id:'pearls', name:'Pearls'}, {id:'ruby', name:'Ruby pendant'},
+  {id:'none', name:'None'}, {id:'acorns', name:'Acorn necklace', isNew:true}, {id:'chain', name:'Gold chain'}, {id:'pearls', name:'Pearls'}, {id:'ruby', name:'Ruby pendant'},
   {id:'medal', name:'Gold medal'}, {id:'hoops', name:'Hoop earrings'}, {id:'bracelets', name:'Bracelets'}, {id:'bling', name:'Diamond bling'}
 ];
 const HAT_IDS = HATS.map(h => h.id), JEWEL_IDS = JEWELS.map(j => j.id);
@@ -1590,6 +1791,41 @@ function drawHat(c, id, x, y, t){
     c.beginPath(); c.moveTo(0, -2.5); c.quadraticCurveTo(-7, -8, -7.5, -2); c.quadraticCurveTo(-6, 2.5, 0, -2.5); fs('#ff7fab');
     c.beginPath(); c.moveTo(0, -2.5); c.quadraticCurveTo(7, -8, 7.5, -2); c.quadraticCurveTo(6, 2.5, 0, -2.5); fs('#ff7fab');
     c.beginPath(); c.arc(0, -2.5, 1.8, 0, 7); fs('#e0558f');
+  } else if (id === 'pilgrim') {
+    c.beginPath(); c.ellipse(0, .3, 9.5, 2, 0, 0, 7); fs('#24222b');
+    c.beginPath(); c.moveTo(-5.6, .4); c.lineTo(-4.6, -11); c.lineTo(4.6, -11); c.lineTo(5.6, .4); c.closePath(); fs('#2c2a33');
+    c.fillStyle = '#5a5464'; c.fillRect(-5.3, -3.6, 10.6, 2.8);
+    c.fillStyle = GOLD; c.strokeStyle = GOLD_D; c.lineWidth = .6; rr(c, -2.2, -4.4, 4.4, 4.2, .6); c.fill(); c.stroke();
+    c.fillStyle = '#2c2a33'; c.fillRect(-1, -3.2, 2, 1.8);
+  } else if (id === 'turkeyhat') {
+    for (const s of [-1, 1]) {
+      c.save(); c.translate(s*4.4, -6); c.rotate(s*.55);
+      c.beginPath(); c.ellipse(0, -1.4, 1.8, 3.1, 0, 0, 7); fs('#b8692e', '#5a2e10');
+      c.fillStyle = '#f6f1e4'; c.strokeStyle = '#8a8172'; c.lineWidth = .5;
+      c.beginPath(); c.moveTo(-1.2, -4.4); c.lineTo(-1.6, -6.4); c.lineTo(-.5, -5.6); c.lineTo(0, -6.9); c.lineTo(.5, -5.6); c.lineTo(1.6, -6.4); c.lineTo(1.2, -4.4); c.closePath(); c.fill(); c.stroke();
+      c.restore();
+    }
+    c.beginPath(); c.ellipse(0, -3.4, 8, 4.6, 0, 0, 7); fs('#c4782f', '#5a2e10');
+    c.fillStyle = 'rgba(255,230,170,.5)'; c.beginPath(); c.ellipse(-2.2, -5.2, 3.4, 1.5, -.2, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(90,46,16,.55)'; c.lineWidth = .6; c.beginPath(); c.moveTo(-4.5, -1.6); c.quadraticCurveTo(0, -.4, 4.5, -1.6); c.stroke();
+  } else if (id === 'leaves') {
+    c.strokeStyle = '#6b3d1a'; c.lineWidth = 1.1; c.beginPath(); c.ellipse(0, .4, 6.6, 1.6, 0, 0, 7); c.stroke();
+    const cols = ['#c2452f', '#e8b04a', '#d9772b', '#9a5a2a', '#d9772b', '#e8b04a', '#c2452f'];
+    for (let k = 0; k < 7; k++) { const a = -Math.PI + (k + .5)*Math.PI/7; leaf(c, Math.cos(a)*5.6, .4 + Math.sin(a)*1.4, a, k === 3 ? 6.6 : 5.6, cols[k]); }
+    c.fillStyle = '#8a5a2a'; c.strokeStyle = '#4a2a10'; c.lineWidth = .5; c.beginPath(); c.ellipse(0, -.4, 1.3, 1.6, 0, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = '#5a3a1a'; c.beginPath(); c.ellipse(0, -1.6, 1.6, .9, 0, Math.PI, 0); c.closePath(); c.fill();
+  } else if (id === 'chef') {
+    c.beginPath(); c.arc(-3.8, -7.8, 3.6, 0, 7); c.arc(0, -9.8, 4.2, 0, 7); c.arc(3.8, -7.8, 3.6, 0, 7);
+    c.strokeStyle = '#8a8494'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#fbf9f3'; c.fill();
+    rr(c, -5.2, -5.4, 10.4, 6, 1); fs('#f1ede3', '#8a8494');
+    c.strokeStyle = 'rgba(138,132,148,.6)'; c.lineWidth = .6; c.beginPath(); c.moveTo(-2, -5); c.lineTo(-2.2, -.6); c.moveTo(2, -5); c.lineTo(2.2, -.6); c.stroke();
+  } else if (id === 'pie') {
+    c.beginPath(); c.moveTo(-8, -.6); c.lineTo(-6.8, 1.5); c.lineTo(6.8, 1.5); c.lineTo(8, -.6); c.closePath(); fs('#b7783a', '#6b4214');
+    c.beginPath(); c.ellipse(0, -.9, 8.2, 2.5, 0, 0, 7); fs('#dca45a', '#6b4214');
+    c.beginPath(); c.ellipse(0, -1.1, 6.5, 1.75, 0, 0, 7); fs('#d9772b', '#9a4e14');
+    c.beginPath(); c.arc(-1.3, -2.7, 1.8, 0, 7); c.arc(1.3, -2.7, 1.8, 0, 7); c.arc(0, -4.1, 1.9, 0, 7);
+    c.strokeStyle = '#b9b2a2'; c.lineWidth = 1.2; c.stroke(); c.fillStyle = '#fffaf0'; c.fill();
+    c.beginPath(); c.moveTo(-.9, -5.4); c.quadraticCurveTo(-.2, -7.6, 1.1, -6.4); c.quadraticCurveTo(.4, -5.6, .9, -5.2); c.closePath(); c.fill();
   } else if (id === 'pirate') {
     c.beginPath(); c.moveTo(-9.5, .8); c.quadraticCurveTo(-7, -9, 0, -8.5); c.quadraticCurveTo(7, -9, 9.5, .8); c.quadraticCurveTo(0, -2.5, -9.5, .8); c.closePath(); fs('#24242e');
     c.strokeStyle = GOLD; c.lineWidth = .9; c.beginPath(); c.moveTo(-8.6, -.2); c.quadraticCurveTo(0, -3.4, 8.6, -.2); c.stroke();
@@ -1600,7 +1836,7 @@ function drawHat(c, id, x, y, t){
 }
 // necklaces sit on the chest; (x, y) is the middle of the neck
 function drawNeck(c, id, x, y, w){
-  if (!['chain', 'pearls', 'ruby', 'medal', 'bling'].includes(id)) return;
+  if (!['chain', 'pearls', 'ruby', 'medal', 'bling', 'acorns'].includes(id)) return;
   w = w || 4.6;
   c.save(); c.translate(x, y); c.lineCap = 'round';
   const curve = (dip) => { c.beginPath(); c.moveTo(-w, 0); c.quadraticCurveTo(0, dip*2, w, 0); };
@@ -1619,6 +1855,14 @@ function drawNeck(c, id, x, y, w){
     c.fillStyle = '#e0344f'; c.strokeStyle = GOLD_D; c.lineWidth = .6;
     c.beginPath(); c.moveTo(0, 3.2); c.lineTo(2.2, 5.3); c.lineTo(0, 8.2); c.lineTo(-2.2, 5.3); c.closePath(); c.fill(); c.stroke();
     c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(-.6, 4.9, .5, 0, 7); c.fill();
+  } else if (id === 'acorns') {
+    curve(4.4); c.strokeStyle = '#6b3d1a'; c.lineWidth = .7; c.stroke();
+    for (const [px, py] of [[-2.6, 3], [0, 4.4], [2.6, 3]]) {
+      c.fillStyle = '#c0803a'; c.strokeStyle = '#4a2a10'; c.lineWidth = .45;
+      c.beginPath(); c.ellipse(px, py + 1.3, 1.15, 1.5, 0, 0, 7); c.fill(); c.stroke();
+      c.fillStyle = '#6b4a2a'; c.beginPath(); c.ellipse(px, py + .2, 1.45, .85, 0, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = '#4a2a10'; c.beginPath(); c.moveTo(px, py - .6); c.lineTo(px + .3, py - 1.2); c.stroke();
+    }
   } else if (id === 'medal') {
     c.strokeStyle = '#3a6fd8'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-w + .6, -.2); c.lineTo(0, 5); c.lineTo(w - .6, -.2); c.stroke();
     c.fillStyle = GOLD; c.strokeStyle = GOLD_D; c.lineWidth = .6; c.beginPath(); c.arc(0, 7, 2.6, 0, 7); c.fill(); c.stroke();
@@ -1657,13 +1901,14 @@ function drawFigure(c, a, x, y){
     c.scale(a.sz, a.sz);
   }
   c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(0, 1, 10, 4, 0, 0, 7); c.fill();
-  if (a.kind === 'dino') drawDino(c, a); else drawHumanoid(c, a);
+  if (a.kind === 'turkey') drawTurkeyRex(c, a); else if (a.kind === 'dino') drawDino(c, a); else drawHumanoid(c, a);
   c.restore();
 }
 // How a figure leans, hops and tilts its head this frame. The giant's red eye glow uses this too,
 // so the glow always sits right on the eyes, whatever pose the figure is in.
+const isDino = a => a.kind === 'dino' || a.kind === 'turkey';
 function figMotion(a){
-  const walking = a.moving && !a.wob, dino = a.kind === 'dino';
+  const walking = a.moving && !a.wob, dino = isDino(a);
   let lean = 0, hop = 0, head = 0;
   if (walking) { const s = Math.sin(a.phase); hop = Math.abs(s)*1.2; if (dino) head = Math.sin(a.phase*2)*.06; }
   else if (a.pose) { lean = a.pose.lean || 0; if (dino) head = a.pose.head || 0; }
@@ -1752,6 +1997,67 @@ function drawDino(c, a){
   c.fillStyle = a.big ? (a.hs === 2 ? '#ffd6d6' : '#ff3448') : O; c.beginPath(); c.arc(1.6, -1, 1.5, 0, 7); c.fill();
   drawHoops(c, a.jew, -.6, -.6, .6);
   if (a.hat && a.hat !== 'none') { c.save(); c.translate(2.4, -4.2); c.rotate(.12); c.scale(.72, .72); drawHat(c, a.hat, 0, 0, a.t); c.restore(); }
+  c.restore();
+}
+// The Turkey Rex: the dino skeleton dressed up for Thanksgiving. It moves exactly like the dino
+// (same legs, neck, head and eye spot, so a giant's red eye glow lines up), with turkey feathers.
+const TK = {body:'#7a4628', dark:'#2f1a0d', wing:'#a4693a', band:'#f2dfb4', skin:'#d96a5e', skinD:'#5a2420', red:'#cf3640', leg:'#e39a42', legD:'#6e3f12', beak:'#f2c35b', face:'#9fc4e8'};
+function drawTurkeyRex(c, a){
+  const {walking, lean, hop, head} = figMotion(a);
+  let tail = 0, jaw = 0, legL = 0, legR = 0;
+  if (walking) { const s = Math.sin(a.phase); legL = s; legR = -s; tail = Math.sin(a.phase*.5)*.12; }
+  else if (a.pose) { tail = a.pose.tail || 0; jaw = a.pose.jaw || 0; legL = a.pose.legL || 0; }
+  c.scale(a.face || 1, 1); c.rotate(lean); c.translate(0, -hop);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const line = (fn, w, col, out) => { c.strokeStyle = out; c.lineWidth = w + 2.2; c.beginPath(); fn(); c.stroke(); c.strokeStyle = col; c.lineWidth = w; c.beginPath(); fn(); c.stroke(); };
+  const leg = s => () => { const lift = Math.max(0, s)*3.5; c.moveTo(-2, -14); c.lineTo(-1 + s*3, -8 - lift*.5); c.lineTo(-4 + s*4, -lift); c.lineTo(.5 + s*4, -lift); };
+  c.globalAlpha = .8; line(leg(legR), 2, TK.leg, TK.legD); c.globalAlpha = 1;
+  // the tail fan, spread up behind the body like a strutting turkey
+  c.save(); c.translate(-4, -17.5); c.rotate(-tail*.22);
+  const FAN = ['#7a4628', '#a8652f', '#c27a34'];
+  for (let k = 0; k < 9; k++) {
+    const u = k/8, ang = -Math.PI*1.03 + u*Math.PI*.64, L = 11 + 2.4*Math.sin(u*Math.PI), w = 2.4;
+    c.save(); c.rotate(ang);
+    const feather = () => { c.beginPath(); c.moveTo(1, 0); c.bezierCurveTo(L*.35, -w, L*.85, -w, L, 0); c.bezierCurveTo(L*.85, w, L*.35, w, 1, 0); c.closePath(); };
+    feather(); c.fillStyle = FAN[k % 3]; c.strokeStyle = TK.dark; c.lineWidth = .8; c.fill(); c.stroke();
+    c.save(); feather(); c.clip(); c.fillStyle = TK.band; c.fillRect(L*.64, -w, L*.12, 2*w); c.fillStyle = TK.dark; c.fillRect(L*.8, -w, L*.2, 2*w); c.restore();
+    c.restore();
+  }
+  c.restore();
+  // plump body, wing and beard
+  c.fillStyle = TK.body; c.strokeStyle = TK.dark; c.lineWidth = 1.2;
+  c.beginPath(); c.ellipse(1.5, -17.5, 8.4, 6.2, -.18, 0, 7); c.fill(); c.stroke();
+  c.strokeStyle = 'rgba(242,223,180,.3)'; c.lineWidth = .8; c.beginPath();
+  for (const [px, py] of [[4, -20.5], [7, -18], [3.5, -15.5], [6.5, -14.8], [.5, -19]]) { c.moveTo(px - 1.6, py); c.quadraticCurveTo(px, py + 1.6, px + 1.6, py); }
+  c.stroke();
+  c.fillStyle = TK.wing; c.strokeStyle = TK.dark; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(-4.5, -19.5); c.quadraticCurveTo(2, -22, 4.5, -17); c.quadraticCurveTo(1, -12.5, -4.5, -15); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = TK.band; c.lineWidth = .7; c.beginPath(); c.moveTo(-3, -18.6); c.lineTo(2.5, -17.6); c.moveTo(-3, -16.6); c.lineTo(1.8, -15.6); c.stroke();
+  c.strokeStyle = '#1b120c'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(8.4, -18); c.lineTo(9.1, -13.6); c.stroke();
+  // bare red neck, legs and tiny T. rex arms
+  line(() => { c.moveTo(5, -20); c.quadraticCurveTo(8.5, -22.5 - head*4, 10, -27 - head*5); }, 3.2, TK.skin, TK.skinD);
+  line(leg(legL), 2, TK.leg, TK.legD);
+  line(() => { c.moveTo(7, -17); c.lineTo(9.3, -14.6); c.lineTo(10.8, -15.1); }, 1.4, TK.wing, TK.dark);
+  if (a.jew && a.jew !== 'none') { c.save(); c.translate(8.6, -22.5 - head*3); c.rotate(-.5); c.scale(.8, .8); drawNeck(c, a.jew, 0, 0, 3.6); c.restore(); drawCuff(c, a.jew, 9.6, -15.2); }
+  // the head: T. rex jaws, turkey colors, beak, snood and wattle
+  c.save(); c.translate(10.5, -28.5 - head*5); c.rotate(-head*.9);
+  c.save(); c.translate(-1, 1.5); c.rotate(jaw*.5);
+  c.fillStyle = TK.skin; c.strokeStyle = TK.skinD; c.lineWidth = 1.2;
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(9, -.5); c.lineTo(8, 2); c.lineTo(0, 2.4); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = TK.red; c.beginPath(); c.ellipse(2.2, 4.4, 1.9, 2.7, .15, 0, 7); c.fill(); c.stroke();
+  c.restore();
+  c.fillStyle = TK.skin; c.strokeStyle = TK.skinD; c.lineWidth = 1.3;
+  c.beginPath(); c.moveTo(-3, -3); c.quadraticCurveTo(6, -5.5, 10, -1); c.lineTo(9.5, 1.2); c.lineTo(-2.5, 2.2); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#fffaf0'; c.strokeStyle = TK.skinD; c.lineWidth = .4;
+  for (const tx of [2.4, 4.4, 6.4]) { const ey = 1.95 - (tx + 2.5)*.083; c.beginPath(); c.moveTo(tx - .75, ey); c.lineTo(tx, ey + 1.5); c.lineTo(tx + .75, ey); c.closePath(); c.fill(); c.stroke(); }
+  c.fillStyle = TK.face; c.beginPath(); c.ellipse(1.4, -.7, 2.8, 2.1, 0, 0, 7); c.fill();
+  c.fillStyle = TK.beak; c.strokeStyle = '#7a5418'; c.lineWidth = .9;
+  c.beginPath(); c.moveTo(8.2, -2.7); c.quadraticCurveTo(11.8, -1.7, 12.2, .2); c.lineTo(8.6, .9); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = TK.red; c.lineWidth = 1.5; c.beginPath(); c.moveTo(7, -3.6); c.quadraticCurveTo(10.6, -4.6, 11.5, -.6); c.quadraticCurveTo(11.9, 1.6, 11.1, 2.9); c.stroke();
+  c.fillStyle = a.big ? (a.hs === 2 ? '#ffd6d6' : '#ff3448') : '#1a0f0a'; c.beginPath(); c.arc(1.6, -1, 1.5, 0, 7); c.fill();
+  if (!a.big) { c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(2.1, -1.5, .45, 0, 7); c.fill(); }
+  drawHoops(c, a.jew, -.6, -.6, .6);
+  if (a.hat && a.hat !== 'none') { c.save(); c.translate(2.4, -4.4); c.rotate(.12); c.scale(.72, .72); drawHat(c, a.hat, 0, 0, a.t); c.restore(); }
   c.restore();
 }
 function drawBubble(c, x, y, text, color){
@@ -2224,7 +2530,7 @@ const giantRage = k => 1.4 + .12*k;                 // how long it ignores light
 const giantReach = G => 12 + 7*G.sz;
 const giantR = G => 11 + G.sz*1.5;
 const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0'); };
-function huntBotLook(s){ const hats = ['cowboy', 'top', 'beanie', 'pirate', 'party', 'wizard', 'bow', 'propeller']; return {hat:hats[s % hats.length], jew:'none'}; }
+function huntBotLook(s){ const hats = FEAST ? ['pilgrim', 'chef', 'leaves', 'cowboy', 'turkeyhat', 'top', 'pie', 'beanie'] : ['cowboy', 'top', 'beanie', 'pirate', 'party', 'wizard', 'bow', 'propeller']; return {hat:hats[s % hats.length], jew:'none'}; }
 
 /* ---------- the big map ---------- */
 function buildHuntWorld(o = {}){
@@ -2288,7 +2594,7 @@ function startHuntSolo(){
   buildHuntWorld();
   world.guards = [0, 1, 2, 3].map(s => (!giant && s === 0) ? makeHuntGuard(0, 'me', 'me', myName(), save.lookG) : makeHuntGuard(s, 'ai', 'ai' + s, BOT_GUARDS[s], huntBotLook(s)));
   const G = giant ? makeGiant({id:'me', ctrl:'me', kind:save.exhibit, name:myName(), look:save.lookEx})
-    : makeGiant({id:'#G', ctrl:'bot', kind:mpick(EX_IDS), name:'The giant'});
+    : makeGiant({id:'#G', ctrl:'bot', kind:mpick(GIANT_KINDS), name:'The giant'});
   world.exhibits = [G]; world.giant = G;
   me.role = giant ? 'giant' : 'guard'; me.ent = giant ? G : world.guards[0];
   checkOrientation();
@@ -2417,7 +2723,8 @@ function breakOut(e){
   breakFx(e);
 }
 function breakFx(e){
-  SFX.roar(); game.shake = Math.max(game.shake || 0, .55);
+  if (e.kind === 'turkey') SFX.gobble(true); else SFX.roar();
+  game.shake = Math.max(game.shake || 0, .55);
   burst(e.x, e.y - 18*e.sz, '#ff4d5e', 18);
   if (me.role === 'guard') hintOnce('hbreak', 'It broke out of the light! Lights can\'t stop it for a moment. Run!', 3000);
   else if (me.role === 'giant') hintOnce('hbreakG', 'You broke free! Lights can\'t stop you for a moment. Charge!', 3000);
@@ -2562,7 +2869,7 @@ function giantShake(G){
 // The giant's eyes glow red in the dark, so you can see it coming. The glow follows the same moves as
 // drawFigure and drawDino/drawHumanoid (shake, size, facing, lean, hop and head tilt), so it stays on the eyes.
 function giantEyes(G){
-  const M = figMotion(G), dino = G.kind === 'dino', deg = 180/Math.PI;
+  const M = figMotion(G), dino = isDino(G), deg = 180/Math.PI;
   const m = new DOMMatrix().translateSelf(G.x + giantShake(G), G.y).scaleSelf(G.sz, G.sz);
   if (dino) m.scaleSelf(G.face || 1, 1);
   m.rotateSelf(M.lean*deg).translateSelf(0, -M.hop);
@@ -2683,7 +2990,7 @@ function startRoomHunt(H){
   let G;
   if (gid && gid === myId) { G = makeGiant({id:gid, ctrl:'me', kind:save.exhibit, name:myName(), look:save.lookEx}); me.role = 'giant'; me.ent = G; }
   else if (gid && gid[0] !== '#') { const pr = NET.peers.get(gid); G = makeGiant({id:gid, ctrl:'net', kind:EX_IDS.includes(pr && pr.k) ? pr.k : 'statue', name:cleanName(pr && pr.n), look:{hat:pr && pr.ht, jew:pr && pr.jw}}); }
-  else G = makeGiant({id:'#G', ctrl:NET.isHost ? 'bot' : 'mirror', kind:EX_IDS[(H.ep | 0) % EX_IDS.length], name:'The giant'});
+  else G = makeGiant({id:'#G', ctrl:NET.isHost ? 'bot' : 'mirror', kind:GIANT_KINDS[(H.ep | 0) % GIANT_KINDS.length], name:'The giant'});
   world.exhibits = [G]; world.giant = G;
   for (const x of [...world.guards, G]) if (x.ctrl === 'net' || x.ctrl === 'mirror') { x.tx = x.x; x.ty = x.y; if (x.kind === 'guard') x.ta = x.angle; }
   game.clock = typeof H.t === 'number' ? H.t/10 : -3; NET.clockBase = game.clock; NET.clockAt = performance.now();
@@ -2821,7 +3128,7 @@ function startSolo(){
   buildWorld(i, {nPeds:nb});
   world.guards = world.L.guards.map((d, s) => s === 0 && guard ? makeHumanGuard(0, 'me', 'me', myName(), save.lookG) : makeAIGuard(s));
   if (guard) {
-    world.exhibits = Array.from({length:nb}, (_, k) => { const kind = EX_IDS[(k + 1) % EX_IDS.length]; return makeExhibit({id:'#'+k, ctrl:'bot', kind, ped:k, name:exName(kind), look:botLook(k)}); });
+    world.exhibits = Array.from({length:nb}, (_, k) => { const kind = botKind(k); return makeExhibit({id:'#'+k, ctrl:'bot', kind, ped:k, name:exName(kind), look:botLook(k)}); });
     me.role = 'guard'; me.ent = world.guards[0]; game.botReact = BOT_REACT[i]; game.botNotice = BOT_NOTICE[i];
   } else {
     world.exhibits = [makeExhibit({id:'me', ctrl:'me', kind:save.exhibit, ped:0, name:myName(), look:save.lookEx})];
@@ -2834,7 +3141,7 @@ function startSolo(){
   if (guard) hint(say({touch:'You only see what your flashlight shows. Left thumb walks, right thumb aims.', keys:'You only see what your flashlight shows. WASD walks, the mouse aims.', pad:'You only see what your flashlight shows. Left stick walks, right stick aims.'}), 3800);
   else if (game.night === 0) hint(say({touch:'Drag anywhere to sneak. Let go to freeze!', keys:'Move with WASD or the arrow keys. Let go to freeze!', pad:'Sneak with the left stick. Let go to freeze!'}), 3600);
 }
-function setHudNight(){ $('hudGemStat').hidden = false; $('hudSize').hidden = true; $('hudClockStat').title = 'Time until sunrise at 6:00 AM'; $('hudLeft').title = 'Exhibits still sneaking around'; $('hudKicker').textContent = `Night ${ROMAN[game.night]}${me.role === 'guard' ? ' · Guard' : ''}`; $('hudName').textContent = LEVELS[game.night].name; }
+function setHudNight(){ $('hudGemStat').hidden = false; $('hudGemStat').classList.toggle('rolls', !!LEVELS[game.night].feast); $('hudGemStat').title = LEVELS[game.night].feast ? 'Dinner rolls found' : 'Gems found'; $('hudSize').hidden = true; $('hudClockStat').title = 'Time until sunrise at 6:00 AM'; $('hudLeft').title = 'Exhibits still sneaking around'; $('hudKicker').textContent = `${nightName(game.night)}${me.role === 'guard' ? ' · Guard' : ''}`; $('hudName').textContent = LEVELS[game.night].name; }
 function togglePause(){
   if (game.kind === 'room') {
     if (panels.pause.hidden) { showPanel('pause'); setPauseText(); } else showPanel(null);
@@ -2866,15 +3173,15 @@ function showResult(o){
   showPanel('result'); prim.focus({preventScroll:true}); frTickSoon();
 }
 function endSolo(won, why){
-  const i = game.night, last = i === LEVELS.length - 1, p = me.ent;
+  const i = game.night, sp = !!LEVELS[i].special, last = sp || i === MAIN_N - 1, p = me.ent;
   const stars = won ? Math.max(1, 3 - p.c) : 0;
   if (won) { save.best[i] = Math.max(save.best[i], stars); persist(); SFX.win(); setPose(p, randomPose(p.kind, p.pz)); p.moving = false; p.wob = false; }
   else SFX.lose();
   stopBreath(); if (!won && why === 'dawn') setTimeout(() => playVoice('dawn', null, {force:true}), 700);
   const lines = {3:'Not a single wobble. The guard suspects nothing.', 2:'One close call, but nobody noticed.', 1:'That was close. The guard is still rubbing his eyes.'};
   showResult({
-    kicker: won ? `Night ${ROMAN[i]} complete` : `Night ${ROMAN[i]}`,
-    title: won ? (last ? 'You made it through every night!' : 'Back on your pedestal!') : (why === 'dawn' ? 'The sun came up!' : 'Caught three times!'),
+    kicker: won ? `${nightName(i)} complete` : nightName(i),
+    title: won ? (sp ? 'Happy Thanksgiving!' : last ? 'You made it through every night!' : 'Back on your pedestal!') : (why === 'dawn' ? 'The sun came up!' : 'Caught three times!'),
     lose: !won, stars,
     text: won ? `Home at ${clockStr(game.clock, world.L.duration)}. ${lines[stars]}`
       : (why === 'dawn' ? `Morning visitors are about to find a ${exName(save.exhibit).toLowerCase()} in the wrong room. Try again and head home sooner.` : 'The guard saw you moving and called the curator. Try again, and freeze sooner when the light swings your way.'),
@@ -2884,16 +3191,16 @@ function endSolo(won, why){
   });
 }
 function endSoloGuard(r){
-  const i = game.night, last = i === LEVELS.length - 1, won = r.w === 'g';
+  const i = game.night, sp = !!LEVELS[i].special, last = sp || i === MAIN_N - 1, won = r.w === 'g', gw = gemWord();
   const gf = gemsFound(), gt = world.gems.length, f = gt ? gf/gt : 0;
   const stars = !won ? 0 : r.why === 'out' ? 3 : f <= .34 ? 3 : f <= .67 ? 2 : 1;
   if (won) { save.bestG[i] = Math.max(save.bestG[i], stars); persist(); SFX.win(); } else SFX.lose();
   setTimeout(() => playVoice(won ? (r.why === 'out' ? 'gotcha' : 'dawn') : 'gems', null, {force:true}), 700);
   showResult({
-    kicker: won ? `Night ${ROMAN[i]} · Guard shift complete` : `Night ${ROMAN[i]} · Guard shift`,
-    title: won ? (r.why === 'out' ? 'Every exhibit caught!' : 'Sunrise! The museum is safe.') : 'The exhibits got every gem home!',
+    kicker: won ? `${nightName(i)} · Guard shift complete` : `${nightName(i)} · Guard shift`,
+    title: won ? (r.why === 'out' ? 'Every exhibit caught!' : sp ? 'Sunrise! The feast is safe.' : 'Sunrise! The museum is safe.') : `The exhibits got every ${gw.slice(0, -1)} home!`,
     lose: !won, stars,
-    text: won ? (r.why === 'out' ? 'You caught every exhibit three times. The museum is quiet again.' : `The exhibits only got ${gf} of ${gt} gems home before 6:00 AM.`)
+    text: won ? (r.why === 'out' ? 'You caught every exhibit three times. The museum is quiet again.' : `The exhibits only got ${gf} of ${gt} ${gw} home before 6:00 AM.`)
       : 'Sweep your light around more, and point it at footstep rings when you see them.',
     primary: won ? (last ? 'Back to the menu' : `Next: Night ${ROMAN[i+1]}`) : 'Try again',
     onPrimary: won ? (last ? openMenu : () => openIntro(i + 1)) : startSolo,
@@ -2969,6 +3276,7 @@ function render(){
     for (const p of world.peds) if (Math.floor(p.y/T) === r) drawPedestal(ctx, p, game.rules === 'solo' && allFound);
     for (const gm of world.gems) if (Math.floor(gm.y/T) === r && visGem(gm)) drawGem(ctx, gm);
     for (const reg of world.dino) if (reg.y1 === r) drawSkeletons(ctx, reg);
+    for (const reg of world.tables) if (reg.y1 === r) drawTable(ctx, reg);
     while (ai < actors.length && Math.floor(actors[ai].y/T) <= r) drawActor(actors[ai++]);
   }
   while (ai < actors.length) drawActor(actors[ai++]);
@@ -3010,6 +3318,7 @@ function render(){
     ctx.globalAlpha = .13;
     for (let r = 0; r < world.H; r++) for (let x = 0; x < world.W; x++) { const ch = world.grid[r][x]; if (ch !== '.') drawCell(ctx, ch, x, r); }
     for (const p of world.peds) drawPedestal(ctx, p, false);
+    ctx.globalAlpha = .06; for (const reg of world.tables) drawTable(ctx, reg);
     ctx.globalAlpha = 1;
   }
 
@@ -3105,6 +3414,7 @@ function render(){
   }
 }
 function drawGemAt(c, x, y, color, k){
+  if (world && world.L && world.L.feast) { drawRollAt(c, x, y, k); return; }
   c.save(); c.translate(x, y); c.scale(k, k);
   c.fillStyle = color; c.strokeStyle = 'rgba(10,14,36,.6)'; c.lineWidth = 1.2;
   c.beginPath(); c.moveTo(0, -8); c.lineTo(7, -2); c.lineTo(0, 8); c.lineTo(-7, -2); c.closePath(); c.fill(); c.stroke();
@@ -3121,7 +3431,8 @@ function drawActor(a){
 
 /* ---------- menu ---------- */
 const previews = [];
-const unlocked = i => { const b = save.play === 'guard' ? save.bestG : save.best; return i === 0 || b[i-1] > 0; };
+const unlocked = i => { const b = save.play === 'guard' ? save.bestG : save.best; return i === 0 || !!LEVELS[i].special || b[i-1] > 0; };
+const gemWord = () => world && world.L && world.L.feast ? 'rolls' : 'gems';
 function renderMenu(){
   const hunt = save.mode === 'hunt', guard = hunt ? save.huntAs !== 'giant' : save.play === 'guard';
   $('modeNights').setAttribute('aria-pressed', String(!hunt)); $('modeHunt').setAttribute('aria-pressed', String(hunt));
@@ -3135,9 +3446,11 @@ function renderMenu(){
       const b = document.createElement('button'); b.className = 'exhibit'; b.type = 'button'; b.dataset.id = e.id;
       const cv = document.createElement('canvas');
       const nm = document.createElement('b'); nm.textContent = e.name;
+      if (e.isNew) { const t = document.createElement('span'); t.className = 'newtag'; t.textContent = '🦃 New'; nm.append(t); }
       const nt = document.createElement('small'); nt.textContent = e.note;
-      b.append(cv, nm, nt);
-      b.addEventListener('click', () => { save.exhibit = e.id; persist(); audioInit(); renderMenu(); });
+      if (e.feature) { b.classList.add('feature'); const tx = document.createElement('span'); tx.className = 'txt'; tx.append(nm, nt); b.append(cv, tx); }
+      else b.append(cv, nm, nt);
+      b.addEventListener('click', () => { const was = save.exhibit; save.exhibit = e.id; persist(); audioInit(); if (e.id === 'turkey' && was !== 'turkey') SFX.gobble(); renderMenu(); });
       list.append(b); previews.push({cv, id:e.id, pose:posesFor(e.id)[EXHIBITS.indexOf(e) % 4]});
     }
   }
@@ -3151,14 +3464,15 @@ function renderMenu(){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'night';
     const open = unlocked(i), s = best[i];
     b.disabled = !open; b.setAttribute('aria-pressed', String(i === game.sel));
-    const gems = L.map.join('').split('*').length - 1;
-    const meta = !open ? `Finish Night ${ROMAN[i-1]} to unlock` : guard ? `${SOLO_BOTS[i]} exhibits sneaking · ${gems} gems` : `${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${gems} gems`;
-    b.innerHTML = `<span class="night-no">${ROMAN[i]}</span><span class="night-body"><span class="night-name"></span><span class="night-meta"></span></span><span class="night-stars" aria-label="${s} of 3 stars">${'★'.repeat(s)}<span class="off">${'★'.repeat(3 - s)}</span></span>`;
+    const gems = L.map.join('').split('*').length - 1, gw = L.feast ? 'dinner rolls' : 'gems';
+    const meta = !open ? `Finish Night ${ROMAN[i-1]} to unlock` : (L.special ? 'Thanksgiving special · ' : '') + (guard ? `${SOLO_BOTS[i]} exhibits sneaking · ${gems} ${gw}` : `${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${gems} ${gw}`);
+    if (L.special) b.classList.add('special');
+    b.innerHTML = `<span class="night-no">${L.special ? '🦃' : ROMAN[i]}</span><span class="night-body"><span class="night-name"></span><span class="night-meta"></span></span><span class="night-stars" aria-label="${s} of 3 stars">${'★'.repeat(s)}<span class="off">${'★'.repeat(3 - s)}</span></span>`;
     b.querySelector('.night-name').textContent = L.name; b.querySelector('.night-meta').textContent = meta;
     b.addEventListener('click', () => { game.sel = i; renderMenu(); });
     nl.append(b);
   });
-  $('btnPlay').textContent = guard ? `Start guard shift ${ROMAN[game.sel]}` : `Start Night ${ROMAN[game.sel]}`;
+  $('btnPlay').textContent = LEVELS[game.sel].special ? (guard ? 'Start the feast shift' : 'Start the feast') : guard ? `Start guard shift ${ROMAN[game.sel]}` : `Start Night ${ROMAN[game.sel]}`;
   syncSoundButtons(); renderFriends();
 }
 function drawPreviews(){
@@ -3201,23 +3515,24 @@ function demoWorld(i){
   buildWorld(i, {demo:true}); world.guards = world.L.guards.map((d, s) => makeAIGuard(s));
   me.role = null; me.ent = null; checkOrientation();
 }
+if (BETA) { $('betaTag').hidden = false; $('betaNote').hidden = false; document.title = 'Museum After Dark BETA'; }
 function openMenu(){
   if (NET.room) leaveRoom(true);
   game.mode = 'menu'; game.kind = 'solo'; stick.active = aimStick.active = false;
-  demoWorld(0);
+  demoWorld(FEAST && FEAST_I >= 0 ? FEAST_I : 0);
   $('hud').hidden = true; showPanel('menu'); renderMenu(); frTickSoon();
 }
 function openIntro(i){
   if (save.mode === 'hunt') { openHuntIntro(); return; }
-  $('introGemsLbl').textContent = 'Gems'; $('introSunLbl').textContent = 'Sunrise'; $('introSun').textContent = '6:00 AM';
+  $('introGemsLbl').textContent = LEVELS[i].feast ? 'Rolls' : 'Gems'; $('introSunLbl').textContent = 'Sunrise'; $('introSun').textContent = '6:00 AM';
   game.night = i; game.mode = 'intro';
   const L = LEVELS[i], guard = save.play === 'guard';
   demoWorld(i); me.role = guard ? 'guard' : 'ex';
   const gems = L.map.join('').split('*').length - 1;
-  $('introKicker').textContent = guard ? `Guard shift ${ROMAN[i]} of ${ROMAN[LEVELS.length-1]}` : `Night ${ROMAN[i]} of ${ROMAN[LEVELS.length-1]}`;
+  $('introKicker').textContent = L.special ? (guard ? 'Thanksgiving special · Guard shift' : 'Thanksgiving special') : guard ? `Guard shift ${ROMAN[i]} of ${ROMAN[MAIN_N-1]}` : `Night ${ROMAN[i]} of ${ROMAN[MAIN_N-1]}`;
   $('introName').textContent = L.name; $('introWing').textContent = L.wing;
   $('introBlurb').textContent = guard
-    ? `You're the night guard. ${SOLO_BOTS[i]} exhibits are trying to sneak ${gems} gems back to their pedestals. You can only see what your flashlight lights up.${L.guards.length > 1 ? ` ${L.guards.length - 1} more ${L.guards.length > 2 ? 'guards help' : 'guard helps'} you.` : ''}`
+    ? `You're the night guard. ${SOLO_BOTS[i]} exhibits are trying to sneak ${gems} ${L.feast ? 'dinner rolls' : 'gems'} back to their pedestals. You can only see what your flashlight lights up.${L.guards.length > 1 ? ` ${L.guards.length - 1} more ${L.guards.length > 2 ? 'guards help' : 'guard helps'} you.` : ''}`
     : L.blurb;
   $('introGems').textContent = gems;
   $('introWhoLbl').textContent = guard ? 'Exhibits' : 'Guards';
@@ -3232,7 +3547,7 @@ function openIntro(i){
    through free public MQTT message servers over secure WebSockets. Inside Claude, the
    artifact's own room feature does the same job. */
 const NET_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://mqtt.eclipseprojects.io/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt', 'wss://public:public@public.cloud.shiftr.io'];
-const NET_TOPIC = 'museumafterdark/tt15/v1/', NET_SEND_MS = 100, NET_STALE_MS = 8000;
+const NET_TOPIC = BETA ? 'museumafterdark/tt15/beta1/' : 'museumafterdark/tt15/v1/', NET_SEND_MS = 100, NET_STALE_MS = 8000;
 const NET_TE = typeof TextEncoder === 'function' ? new TextEncoder() : null, NET_TD = typeof TextDecoder === 'function' ? new TextDecoder() : null;
 const brokerList = () => Array.isArray(window.MAD_MQTT_BROKERS) ? window.MAD_MQTT_BROKERS : NET_BROKERS;
 const netId = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
@@ -3703,7 +4018,7 @@ function startRoomNight(H){
   world.exhibits = H.ro.e.map((id, i) => {
     if (!id) { const e = makeExhibit({id:'gone' + i, ctrl:'mirror', kind:'statue', ped:i}); e.gone = true; return e; }
     if (id === myId) { const e = makeExhibit({id, ctrl:'me', kind:save.exhibit, ped:i, name:myName(), look:save.lookEx}); me.role = 'ex'; me.ent = e; return e; }
-    if (id[0] === '#') { const kind = EX_IDS[((+id.slice(1)) + 1) % EX_IDS.length]; return makeExhibit({id, ctrl:NET.isHost ? 'bot' : 'mirror', kind, ped:i, name:exName(kind), look:botLook(+id.slice(1))}); }
+    if (id[0] === '#') { const kind = botKind(+id.slice(1)); return makeExhibit({id, ctrl:NET.isHost ? 'bot' : 'mirror', kind, ped:i, name:exName(kind), look:botLook(+id.slice(1))}); }
     const pr = NET.peers.get(id);
     return makeExhibit({id, ctrl:'net', kind:EX_IDS.includes(pr && pr.k) ? pr.k : 'statue', ped:i, name:cleanName(pr && pr.n), look:{hat:pr && pr.ht, jew:pr && pr.jw}});
   });
@@ -3744,7 +4059,7 @@ function showRoomResult(res){
   stopBreath(); setTimeout(() => playVoice(res.w === 'e' ? 'gems' : res.why === 'dawn' ? 'dawn' : 'gotcha', null, {force:true}), 700);
   const why = res.why === 'gems' ? 'Every gem made it home before sunrise.' : res.why === 'dawn' ? `The sun came up with ${res.gf} of ${res.gt} gems brought home.` : 'Every exhibit was caught three times.';
   showResult({
-    kicker:`Room ${NET.code} · Night ${ROMAN[game.night]}`,
+    kicker:`Room ${NET.code} · ${nightName(game.night)}`,
     title: res.w === 'e' ? 'The exhibits win!' : 'The guards win!',
     lose: !!team && !won, stars:0,
     text: why + (team ? (won ? ' Your team won!' : ' Better luck next night.') : ''),
@@ -3789,7 +4104,7 @@ function renderRoom(){
   $('roomNightLbl').hidden = ns.hidden = hunt;
   $('botLbl').textContent = hunt ? 'Bot guards' : 'Bot exhibits';
   $('roomTip').innerHTML = hunt ? HUNT_ROOM_TIP : '<b>Team rules:</b> Exhibits grab gems and carry them back to their pedestals. Get caught carrying one and it goes back where it was. Exhibits win when every gem is home. Guards win at 6:00 AM, or by catching every exhibit three times.';
-  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = ROMAN[i]; b.setAttribute('aria-label', `Night ${ROMAN[i]}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); roomDemo(); renderRoom(); }); ns.append(b); });
+  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = L.special ? '🦃' : ROMAN[i]; b.setAttribute('aria-label', `${nightName(i)}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); roomDemo(); renderRoom(); }); ns.append(b); });
   [...ns.children].forEach((b, i) => { b.setAttribute('aria-pressed', String(i === NET.cfg.nt)); b.disabled = !host; });
   const L = LEVELS[NET.cfg.nt];
   $('roomNightName').textContent = hunt ? `${HUNT.name} · One giant hunts the night guards` + (host ? '' : ' · The host picks the game') : `${L.name} · ${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${L.map.join('').split('*').length - 1} gems` + (host ? '' : ' · The host picks the night');
@@ -4102,6 +4417,7 @@ function buildCloset(){
       const cv = iconCanvas(); (kind === 'hat' ? hatIcon : jewIcon)(cv, it.id);
       const nm = document.createElement('span'); nm.textContent = it.name;
       b.append(cv, nm);
+      if (it.isNew) { const t = document.createElement('span'); t.className = 'pick-new'; t.textContent = '🦃'; t.title = 'New in the Turkey Rolls update'; b.append(t); }
       b.addEventListener('click', () => { dressLook()[kind] = it.id; persist(); SFX.click(); renderCloset(); });
       host.append(b);
     }
