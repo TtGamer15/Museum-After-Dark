@@ -540,6 +540,7 @@ html{touch-action:manipulation}
 .ttg-move button,.ttg-move a{appearance:none;display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:inherit;font:600 13px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;text-decoration:none;touch-action:manipulation;min-height:36px}
 .ttg-move .ttg-go{background:#52e5ff;border-color:#52e5ff;color:#0b1430}
 .ttg-move small{opacity:.75;font-size:12px}
+.ttg-veil{position:fixed;inset:0;pointer-events:none;z-index:0}
 </style>
 <script>
 (function () {
@@ -579,6 +580,48 @@ html{touch-action:manipulation}
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // The trip between the TtGamer15 Games menu and a game: one side takes itself apart piece by piece,
+  // the other builds itself in the same way, then the background slowly changes.
+  // dir 1 = going into a game (everything moves right), -1 = going back to the menu (everything moves left).
+  var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* old browser */ }
+  function readTrip() {
+    try { var t = JSON.parse(sessionStorage.getItem('ttg.trip') || 'null'); sessionStorage.removeItem('ttg.trip'); return t && t.dir === 1 && Date.now() - t.at < 8000 ? t : null; } catch (e) { return null; }
+  }
+  function kidsOf(card) { return Array.prototype.filter.call(card.children, function (k) { return k.offsetParent !== null || k.getClientRects().length; }).slice(0, 12); }
+  function buildIn(card, t) {
+    var screen = card.parentElement; if (!screen || !card.animate) return;
+    var veil = el('div', 'ttg-veil'); veil.style.background = t.bg || '#ffe0e4'; screen.insertBefore(veil, screen.firstChild);
+    var pos = card.style.position, z = card.style.zIndex; card.style.position = 'relative'; card.style.zIndex = '1';
+    var kids = kidsOf(card);
+    if (!calm) {
+      card.animate([{ offset: 0, translate: '-90px 0', opacity: 0 }, { translate: '0 0' }], { duration: 560, easing: 'cubic-bezier(.2,1.15,.35,1)', fill: 'backwards' });
+      kids.forEach(function (k, i) { k.animate([{ offset: 0, translate: '-46px 0', opacity: 0 }, { translate: '0 0' }], { duration: 480, delay: 110 + i * 55, easing: 'cubic-bezier(.2,1.25,.4,1)', fill: 'backwards' }); });
+    }
+    var fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], { duration: calm ? 400 : 1500, delay: calm ? 0 : 380 + kids.length * 55, easing: 'ease-in-out', fill: 'both' });
+    function done() { veil.remove(); card.style.position = pos; card.style.zIndex = z; }
+    fade.finished.then(done, done);
+  }
+  function takeApart(card, then) {
+    if (calm || !card.animate) { then(); return; }
+    var kids = kidsOf(card);
+    kids.forEach(function (k, i) { k.animate([{ translate: '0 0' }, { translate: '-46px 0', opacity: 0 }], { duration: 230, delay: i * 45, easing: 'cubic-bezier(.55,0,.85,.5)', fill: 'forwards' }); });
+    var last = kids.length * 45;
+    card.animate([{ translate: '0 0' }, { translate: '-90px 0', opacity: 0 }], { duration: 300, delay: last, easing: 'cubic-bezier(.55,0,.85,.5)', fill: 'forwards' });
+    setTimeout(then, last + 300);
+  }
+  function goHub(card) {
+    var bg = ''; try { bg = getComputedStyle(document.body).backgroundColor; } catch (e) { /* fine */ }
+    try { sessionStorage.setItem('ttg.trip', JSON.stringify({ at: Date.now(), dir: -1, bg: bg })); } catch (e) { /* fine */ }
+    takeApart(card, function () {
+      // Step back to the menu that's still open behind this game, so its music carries on without a tap.
+      var ref = (document.referrer || '').split(/[?#]/)[0];
+      if (ref === location.origin + HUB_URL && history.length > 1) {
+        var later = setTimeout(function () { location.href = HUB_URL; }, 900);
+        addEventListener('pagehide', function () { clearTimeout(later); }, { once: true });
+        history.back();
+      } else location.href = HUB_URL;
+    });
+  }
   // Called by the game with the menu card element to put things at the top of.
   window.TTG = {
     hub: hub, onSite: onSite, exportSave: exportSave,
@@ -589,8 +632,12 @@ html{touch-action:manipulation}
       var at = anchor || card.firstChild;
       if (hub) {
         var b = el('button', 'ttg-back', '← TtGamer15 Games'); b.type = 'button'; b.id = 'ttgBack';
-        b.addEventListener('click', function () { location.href = HUB_URL; });
-        card.insertBefore(b, top || at); return;
+        b.addEventListener('click', function () { goHub(card); });
+        card.insertBefore(b, top || at);
+        var t = readTrip(); if (t) buildIn(card, t);
+        // coming back to this page later (the browser kept it): put the pieces back
+        addEventListener('pageshow', function (e) { if (!e.persisted) return; [card].concat(Array.prototype.slice.call(card.children)).forEach(function (k) { if (k.getAnimations) k.getAnimations().forEach(function (a) { a.cancel(); }); }); });
+        return;
       }
       if (!onSite) return;
       var box = el('div', 'ttg-move'); box.id = 'ttgMove';
