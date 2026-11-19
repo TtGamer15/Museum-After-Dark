@@ -43,15 +43,15 @@
 @media (display-mode: standalone){#topcap{display:block;position:fixed;left:0;right:0;top:0;height:2px;background:var(--night);z-index:9999}}
 html{height:100%;--st:0px;--sb:0px}
 /* On the website the game runs under the iPhone's clock bar, so the top bar and menus step down by its height. */
-html.site{--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+html.site{--st:var(--ttg-sa-top,env(safe-area-inset-top,0px));--sb:var(--ttg-sa-bottom,env(safe-area-inset-bottom,0px))}
 /* iOS home-screen apps can get a viewport one status bar too short; a page at least screen-tall gets the full one */
-@media (display-mode: standalone){html.site{min-height:min(100lvh,calc(100% + env(safe-area-inset-top,0px)))}}
+@media (display-mode: standalone){html.site{min-height:min(100lvh,calc(100% + var(--ttg-sa-top,env(safe-area-inset-top,0px))))}}
 body{height:100%;margin:0;background:var(--night);color:var(--marble);font-family:var(--ui);font-size:15px;line-height:1.45;overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #app{position:relative;height:100%;overflow:hidden}
 html.site #app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(--app-h,100%)}
 
 /* HUD: one bar across the top of the screen, over the game, like Noodle Bots */
-.hud{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;padding-top:calc(var(--st) + 8px);padding-bottom:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:linear-gradient(to bottom,color-mix(in srgb,var(--night) 94%,transparent) 0%,color-mix(in srgb,var(--night) 86%,transparent) 72%,color-mix(in srgb,var(--night) 0%,transparent) 100%);pointer-events:none}
+.hud{position:absolute;left:0;right:0;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;padding-top:calc(var(--st) + 8px);padding-bottom:16px;padding-left:max(16px,var(--ttg-sa-left,env(safe-area-inset-left,0px)));padding-right:max(16px,var(--ttg-sa-right,env(safe-area-inset-right,0px)));background:linear-gradient(to bottom,color-mix(in srgb,var(--night) 94%,transparent) 0%,color-mix(in srgb,var(--night) 86%,transparent) 72%,color-mix(in srgb,var(--night) 0%,transparent) 100%);pointer-events:none}
 .hud > *{pointer-events:auto}
 .hud-night{display:flex;flex-direction:column;min-width:0;flex:1 1 9rem;line-height:1.15}
 .hud-kicker{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);font-weight:600}
@@ -66,7 +66,7 @@ html.site #app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(-
 .hearts svg.lost{fill:none;stroke:color-mix(in srgb,var(--marble) 35%,transparent);stroke-width:2}
 .iconbtn{width:36px;height:32px;display:grid;place-items:center;border-radius:999px;border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);background:var(--gallery);color:var(--marble);font:600 14px var(--ui);cursor:pointer;touch-action:manipulation}
 .iconbtn:hover{background:var(--gallery-2)}
-.dawnbar{position:absolute;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:7px;height:3px;border-radius:3px;background:linear-gradient(90deg,#1c2552,#36306a 58%,#a9496d 84%,#ffb46a)}
+.dawnbar{position:absolute;left:max(16px,var(--ttg-sa-left,env(safe-area-inset-left,0px)));right:max(16px,var(--ttg-sa-right,env(safe-area-inset-right,0px)));bottom:7px;height:3px;border-radius:3px;background:linear-gradient(90deg,#1c2552,#36306a 58%,#a9496d 84%,#ffb46a)}
 .dawnbar i{position:absolute;top:50%;left:0;width:9px;height:9px;border-radius:50%;background:var(--marble);transform:translate(-50%,-50%);box-shadow:0 0 8px color-mix(in srgb,var(--marble) 70%,transparent)}
 
 /* Stage */
@@ -79,7 +79,7 @@ html.site #app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(-
 .invite p{margin:0;font-weight:600}
 
 /* Panels */
-.panel{position:absolute;inset:0;display:flex;overflow-y:auto;padding-top:calc(var(--st) + 16px);padding-bottom:calc(var(--sb) + 16px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:color-mix(in srgb,var(--night) 50%,transparent);touch-action:pan-y;z-index:3}
+.panel{position:absolute;inset:0;display:flex;overflow-y:auto;padding-top:calc(var(--st) + 16px);padding-bottom:calc(var(--sb) + 16px);padding-left:max(16px,var(--ttg-sa-left,env(safe-area-inset-left,0px)));padding-right:max(16px,var(--ttg-sa-right,env(safe-area-inset-right,0px)));background:color-mix(in srgb,var(--night) 50%,transparent);touch-action:pan-y;z-index:3}
 .card{margin:auto;width:100%;max-width:35rem;display:flex;flex-direction:column;gap:14px;padding:24px 20px 20px;border-radius:6px;background:color-mix(in srgb,var(--gallery) 95%,transparent);border:1px solid var(--brass);box-shadow:inset 0 0 0 4px var(--gallery),inset 0 0 0 5px color-mix(in srgb,var(--brass) 40%,transparent),0 24px 60px rgba(0,0,0,.55)}
 .card.small{max-width:26rem;text-align:center;align-items:center}
 .eyebrow{margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);font-weight:600}
@@ -547,8 +547,14 @@ html{touch-action:manipulation}
   // Which game this is. Saves for every TtGamer15 game travel together.
   var GAME = 'mad', NAME = 'Museum After Dark', HUB_URL = '/';
   var PREFIXES = ['noodlebots.v2', 'museum-after-dark-v1'];
-  var hub = false;
+  var hub = false, host = null;
   try { if (/[?&]hub=1/.test(location.search)) sessionStorage.setItem('ttg.hub', '1'); hub = sessionStorage.getItem('ttg.hub') === '1'; } catch (e) { /* storage off */ }
+  // Playing inside the TtGamer15 Games app page (the same page as the menu, no page load in between)
+  try { if (window.parent && window.parent !== window && window.parent.TTG_HOST) host = window.parent.TTG_HOST; } catch (e) { host = null; }
+  if (host) hub = true;
+  // The app tells us how much room the iPhone's notch and home bar take, since a game inside the page may not be told.
+  function insets() { try { var v = host.safe(), r = document.documentElement.style; ['top', 'right', 'bottom', 'left'].forEach(function (k) { r.setProperty('--ttg-sa-' + k, (v[k] || 0) + 'px'); }); } catch (e) { /* fine */ } }
+  if (host) { insets(); addEventListener('resize', insets); }
   var onSite = location.hostname === 'ttgamer15.github.io' || /[?&]ttgtest=1/.test(location.search);
   function exportSave() {
     var k = {};
@@ -602,15 +608,16 @@ html{touch-action:manipulation}
     fade.finished.then(done, done);
   }
   function takeApart(card, then) {
-    if (calm || !card.animate) { then(); return; }
+    if (calm || !card.animate) { then(); return 0; }
     var kids = kidsOf(card);
     kids.forEach(function (k, i) { k.animate([{ translate: '0 0' }, { translate: '-46px 0', opacity: 0 }], { duration: 230, delay: i * 45, easing: 'cubic-bezier(.55,0,.85,.5)', fill: 'forwards' }); });
     var last = kids.length * 45;
     card.animate([{ translate: '0 0' }, { translate: '-90px 0', opacity: 0 }], { duration: 300, delay: last, easing: 'cubic-bezier(.55,0,.85,.5)', fill: 'forwards' });
-    setTimeout(then, last + 300);
+    setTimeout(then, last + 300); return last + 300;
   }
   function goHub(card) {
     var bg = ''; try { bg = getComputedStyle(document.body).backgroundColor; } catch (e) { /* fine */ }
+    if (host) { var ms = takeApart(card, function () {}); try { host.back({ ms: ms, bg: bg, win: window }); } catch (e) { location.href = HUB_URL; } return; }
     try { sessionStorage.setItem('ttg.trip', JSON.stringify({ at: Date.now(), dir: -1, bg: bg })); } catch (e) { /* fine */ }
     takeApart(card, function () {
       // Step back to the menu that's still open behind this game, so its music carries on without a tap.
@@ -634,6 +641,11 @@ html{touch-action:manipulation}
         var b = el('button', 'ttg-back', '← TtGamer15 Games'); b.type = 'button'; b.id = 'ttgBack';
         b.addEventListener('click', function () { goHub(card); });
         card.insertBefore(b, top || at);
+        if (host) {
+          // The app shows this game when it's ready, and builds the menu in while its own menu slides away.
+          try { host.ready({ win: window, game: GAME, reveal: function (t) { buildIn(card, t); }, leave: function () { return takeApart(card, function () {}); } }); } catch (e) { /* fine */ }
+          return;
+        }
         var t = readTrip(); if (t) buildIn(card, t);
         // coming back to this page later (the browser kept it): put the pieces back
         addEventListener('pageshow', function (e) { if (!e.persisted) return; [card].concat(Array.prototype.slice.call(card.children)).forEach(function (k) { if (k.getAnimations) k.getAnimations().forEach(function (a) { a.cancel(); }); }); });
