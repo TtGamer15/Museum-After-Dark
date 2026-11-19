@@ -107,6 +107,11 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,8.5vw,46px);l
 .exhibit.feature small{text-align:left}
 .pick{position:relative}
 .pick-new{position:absolute;top:2px;right:4px;font-size:13px;line-height:1}
+.hol{margin-top:14px}
+.hol-head{display:flex;align-items:baseline;gap:8px}
+.hol-head .hol-em{font-size:18px;letter-spacing:0}
+.hol-head small{opacity:.7;font-size:11px;letter-spacing:.04em;text-transform:none}
+#closetHol[hidden],#closetEvery[hidden]{display:none}
 .beta-tag{display:inline-block;margin-left:10px;padding:2px 8px 3px;border-radius:6px;background:var(--brass);color:var(--night);font:700 14px var(--ui);letter-spacing:.08em;vertical-align:6px;text-transform:uppercase}
 .whatsnew summary{color:var(--torch)}
 #hudGemStat.rolls .gem-ico{width:14px;height:10px;transform:none;border-radius:50%;background:radial-gradient(circle at 38% 35%,#f6d394,#d4913f 60%,#8a5420);clip-path:none}
@@ -279,21 +284,7 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
         <h1>Museum After Dark<span class="beta-tag" id="betaTag" hidden>Beta</span></h1>
         <p class="lede">When the lights go out, the exhibits come alive. Sneak around while the night guard isn't looking, or be the guard and catch them moving.</p>
         <p class="muted small-text" id="betaNote" hidden>This is the beta test copy. It has its own save and its own online rooms, so nothing here changes the real game.</p>
-        <details class="how whatsnew" id="whatsNew">
-          <summary>🦃 What's new: the Turkey Rolls update</summary>
-          <ul>
-            <li><span class="em">🦖</span><span><b>Turkey Rex:</b> the dino skeleton, dressed up for Thanksgiving. Play as it, or meet a giant one in Huntdown. Gobble gobble!</span></li>
-            <li><span class="em">🍞</span><span><b>The Feast Hall:</b> a special Thanksgiving night. Sneak around a giant feast table and grab the golden dinner rolls before sunrise.</span></li>
-            <li><span class="em">🎩</span><span><b>5 new hats:</b> Pilgrim hat, Turkey hat, Leaf crown, Chef hat and Pumpkin pie hat, plus an Acorn necklace.</span></li>
-            <li><span class="em">🍂</span><span><b>In November,</b> computer exhibits and guards dress up for Thanksgiving too.</span></li>
-          </ul>
-        </details>
         <hr class="rule">
-        <h2 class="section-label">Game mode</h2>
-        <div class="seg" role="group" aria-label="Game mode">
-          <button type="button" id="modeNights" aria-pressed="true">Nights</button>
-          <button type="button" id="modeHunt" aria-pressed="false">Huntdown <span class="newtag">New</span></button>
-        </div>
         <h2 class="section-label">Play as</h2>
         <div class="seg" role="group" aria-label="Play as">
           <button type="button" id="playEx" aria-pressed="true">An exhibit</button>
@@ -325,14 +316,6 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
             <li>Staring at a frozen exhibit makes your flashlight overheat and turn off for 2 seconds.</li>
             <li>Spinning around nonstop makes you dizzy for a moment.</li>
             <li>On a phone, your left thumb walks and your right thumb aims. On a computer, <kbd>WASD</kbd> walks and the mouse aims. With a controller, the left stick walks and the right stick aims.</li>
-          </ul>
-          <h4>Huntdown</h4>
-          <ul>
-            <li>One exhibit wakes up as a giant with glowing red eyes and hunts the night guards across a big wing of the museum.</li>
-            <li>Guards only see what their flashlights show. Red eyes in the dark and red footstep rings mean the giant is close.</li>
-            <li>Shine your light on the giant to freeze it. It only lasts a moment: it breaks out of the light and can't be frozen again right away.</li>
-            <li>Every 20 seconds it grows bigger, faster and harder to hold still. The guard who lasts the longest wins.</li>
-            <li>You can also be the giant and hunt the guards yourself.</li>
           </ul>
           <h4>With a controller</h4>
           <ul class="padmap" id="padMap"></ul>
@@ -385,10 +368,20 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
           <button type="button" id="dressGuard" aria-pressed="false">Your night guard</button>
         </div>
         <div class="dress-stage"><canvas id="dressPreview" width="300" height="300" aria-label="Preview of your outfit"></canvas><p class="muted small-text" id="dressName">Marble Statue</p></div>
-        <h3 class="section-label">Hat</h3>
-        <div class="picks" id="hatList"></div>
-        <h3 class="section-label">Jewelry</h3>
-        <div class="picks" id="jewList"></div>
+        <div class="seg" role="group" aria-label="Which hats">
+          <button type="button" id="tabEvery" aria-pressed="true">Everyday</button>
+          <button type="button" id="tabHol" aria-pressed="false">🎉 Holidays</button>
+        </div>
+        <div id="closetEvery">
+          <h3 class="section-label">Hat</h3>
+          <div class="picks" id="hatList"></div>
+          <h3 class="section-label">Jewelry</h3>
+          <div class="picks" id="jewList"></div>
+        </div>
+        <div id="closetHol" hidden>
+          <p class="muted small-text">Holiday hats you can wear any time of year.</p>
+          <div id="holList"></div>
+        </div>
         <div class="row">
           <button class="btn primary grow" id="btnDressDone">Done</button>
           <button class="btn ghost" id="btnDressRandom">Surprise me</button>
@@ -501,8 +494,8 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
         <p class="muted small-text" id="roomSub">Tell your friends this code so they can join.</p>
         <h3 class="section-label" id="playersLbl">Players</h3>
         <ul class="list" id="playerList"></ul>
-        <h3 class="section-label">Game mode</h3>
-        <div class="seg" role="group" aria-label="Game mode">
+        <h3 class="section-label" hidden>Game mode</h3>
+        <div class="seg" role="group" aria-label="Game mode" hidden>
           <button type="button" id="roomModeN" aria-pressed="true">Nights</button>
           <button type="button" id="roomModeH" aria-pressed="false">Huntdown</button>
         </div>
@@ -533,6 +526,85 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
     </section>
   </main>
 </div>
+
+<style>
+/* TtGamer15 Games: the back button (when you came from the app) and the "moving" box (old Home Screen apps). */
+.ttg-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;justify-self:start;margin:0 0 4px;padding:7px 13px 7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;font:600 13px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;text-decoration:none;touch-action:manipulation}
+.ttg-back:hover{background:rgba(255,255,255,.14)}
+.ttg-back:focus-visible,.ttg-move button:focus-visible,.ttg-move a:focus-visible{outline:3px solid #52e5ff;outline-offset:2px}
+.ttg-move{display:grid;gap:8px;margin:0 0 6px;padding:12px 14px;border-radius:14px;border:1px solid rgba(82,229,255,.45);background:linear-gradient(135deg,rgba(82,229,255,.13),rgba(178,140,255,.13));font:400 13.5px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:left}
+.ttg-move b{font-weight:700}
+.ttg-move p{margin:0}
+.ttg-move .ttg-row{display:flex;flex-wrap:wrap;gap:6px}
+.ttg-move button,.ttg-move a{appearance:none;display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:inherit;font:600 13px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;text-decoration:none;touch-action:manipulation;min-height:36px}
+.ttg-move .ttg-go{background:#52e5ff;border-color:#52e5ff;color:#0b1430}
+.ttg-move small{opacity:.75;font-size:12px}
+</style>
+<script>
+(function () {
+  // Which game this is. Saves for every TtGamer15 game travel together.
+  var GAME = 'mad', NAME = 'Museum After Dark', HUB_URL = '/';
+  var PREFIXES = ['noodlebots.v2', 'museum-after-dark-v1'];
+  var hub = false;
+  try { if (/[?&]hub=1/.test(location.search)) sessionStorage.setItem('ttg.hub', '1'); hub = sessionStorage.getItem('ttg.hub') === '1'; } catch (e) { /* storage off */ }
+  var onSite = location.hostname === 'ttgamer15.github.io' || /[?&]ttgtest=1/.test(location.search);
+  function exportSave() {
+    var k = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (PREFIXES.some(function (p) { return key === p || key.indexOf(p + '.') === 0; })) k[key] = localStorage.getItem(key);
+      }
+    } catch (e) { /* storage off */ }
+    return 'TTGSAVE1:' + JSON.stringify({ from: GAME, at: Date.now(), k: k });
+  }
+  function copyText(text) {
+    var done = function (ok) { return ok; };
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(); });
+    return Promise.resolve(fallback());
+    function fallback() {
+      var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select(); try { ta.setSelectionRange(0, text.length); } catch (e) { /* old */ }
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      ta.remove(); return done(ok);
+    }
+  }
+  function download(text) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    a.download = 'ttgamer15-games-save.txt'; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  // Called by the game with the menu card element to put things at the top of.
+  window.TTG = {
+    hub: hub, onSite: onSite, exportSave: exportSave,
+    // anchor = the game's logo: the back button goes above it, the moving box just below it.
+    // top = where the back button goes when it should sit above something else (e.g. a small heading over the logo).
+    mount: function (card, anchor, top) {
+      if (!card) return;
+      var at = anchor || card.firstChild;
+      if (hub) {
+        var b = el('button', 'ttg-back', '← TtGamer15 Games'); b.type = 'button'; b.id = 'ttgBack';
+        b.addEventListener('click', function () { location.href = HUB_URL; });
+        card.insertBefore(b, top || at); return;
+      }
+      if (!onSite) return;
+      var box = el('div', 'ttg-move'); box.id = 'ttgMove';
+      var p = el('p'); p.appendChild(document.createTextNode('🎮 ' + NAME + ' is now part of ')); p.appendChild(el('b', null, 'TtGamer15 Games')); p.appendChild(document.createTextNode(', one app with all of TtGamer15\'s games.'));
+      var p2 = el('p'); p2.appendChild(el('small', null, 'Moving over? Tap Copy my save, open TtGamer15 Games, then go to Settings → Bring in a save → Paste.'));
+      var row = el('div', 'ttg-row');
+      var go = el('a', 'ttg-go', 'Open TtGamer15 Games'); go.href = HUB_URL;
+      var cp = el('button', null, 'Copy my save'); cp.type = 'button'; cp.id = 'ttgCopy';
+      cp.addEventListener('click', function () { copyText(exportSave()).then(function (ok) { cp.textContent = ok ? 'Copied! ✓' : 'Couldn\'t copy. Try Save file'; }); });
+      var dl = el('button', null, 'Save file'); dl.type = 'button'; dl.id = 'ttgFile';
+      dl.addEventListener('click', function () { download(exportSave()); });
+      row.appendChild(cp); row.appendChild(dl); row.appendChild(go);
+      box.appendChild(p); box.appendChild(row); box.appendChild(p2);
+      card.insertBefore(box, at ? at.nextSibling : null);
+    }
+  };
+})();
+</script>
 
 <script>
 (() => {
@@ -675,7 +747,7 @@ const EXHIBITS = [
   {id:'knight', name:'Suit of Armor', note:'Steel plate, about 1480'},
   {id:'mummy',  name:'Mummy',         note:'Linen wrappings, about 1300 BCE'},
   {id:'dino',   name:'Dino Skeleton', note:'Fossil bone, 68 million years old'},
-  {id:'turkey', name:'Turkey Rex',    note:'The dino skeleton, dressed up for Thanksgiving', isNew:true, feature:true}
+  {id:'turkey', name:'Turkey Rex',    note:'The dino skeleton, dressed up for Thanksgiving'}
 ];
 const EX_IDS = EXHIBITS.map(e => e.id);
 const BASE_EX = ['statue', 'knight', 'mummy', 'dino'];
@@ -683,7 +755,7 @@ const BASE_EX = ['statue', 'knight', 'mummy', 'dino'];
 const MAIN_N = LEVELS.filter(L => !L.special).length, FEAST_I = LEVELS.findIndex(L => L.feast);
 const nightName = i => LEVELS[i] && LEVELS[i].special ? 'Thanksgiving night' : `Night ${ROMAN[i]}`;
 // November is Thanksgiving time: computer exhibits dress up for it. (?feast=1 or ?feast=0 tries it out any month.)
-const FEAST = (() => { const q = /[?&]feast=([01])/.exec(location.search || ''); return q ? q[1] === '1' : new Date().getMonth() === 10; })();
+const FEAST = false;   // no more November costumes: holiday looks live in Hats & jewelry → Holidays
 const botKind = k => { const b = BASE_EX[(k + 1) % 4]; return b === 'dino' && FEAST && (k >> 2) % 2 === 0 ? 'turkey' : b; };
 const GIANT_KINDS = FEAST ? EX_IDS : BASE_EX;
 const exName = id => (EXHIBITS.find(e => e.id === id) || EXHIBITS[0]).name;
@@ -746,7 +818,6 @@ function loadSave(seed){
     if (Number.isFinite(s.vol)) b.vol = clamp(s.vol, 0, 1);
     if (typeof s.silentOk === 'boolean') b.silentOk = s.silentOk;
     if (s.play === 'guard') b.play = 'guard';
-    if (s.mode === 'hunt') b.mode = 'hunt';
     if (s.huntAs === 'giant') b.huntAs = 'giant';
     for (const k of ['bestH', 'bestHG']) if (Number.isFinite(s[k])) b[k] = clamp(Math.floor(s[k]), 0, 36000);
     for (const k of ['starH', 'starHG']) if (Number.isFinite(s[k])) b[k] = clamp(s[k] | 0, 0, 3);
@@ -1721,24 +1792,137 @@ const FIG = {
 /* ---------- hats & jewelry (drawn in figure units; a head is about 12 wide) ---------- */
 const HATS = [
   {id:'none', name:'No hat'},
-  {id:'pilgrim', name:'Pilgrim hat', isNew:true}, {id:'turkeyhat', name:'Turkey hat', isNew:true}, {id:'leaves', name:'Leaf crown', isNew:true},
-  {id:'chef', name:'Chef hat', isNew:true}, {id:'pie', name:'Pumpkin pie hat', isNew:true},
+  {id:'pilgrim', name:'Pilgrim hat'}, {id:'turkeyhat', name:'Turkey hat'}, {id:'leaves', name:'Leaf crown'},
+  {id:'chef', name:'Chef hat'}, {id:'pie', name:'Pumpkin pie hat'},
+  {id:'newyear', name:'New Year top hat'}, {id:'heartband', name:'Heart headband'}, {id:'leprechaun', name:'Leprechaun hat'},
+  {id:'eggshell', name:'Easter egg hat'}, {id:'flowercrown', name:'Flower crown'}, {id:'fishhat', name:'Fishing hat'},
+  {id:'unclesam', name:'Stars & stripes hat'}, {id:'witch', name:'Witch hat'}, {id:'pumpkin', name:"Jack-o'-lantern"},
+  {id:'dreidel', name:'Dreidel hat'}, {id:'santa', name:'Santa hat'}, {id:'antlers', name:'Reindeer antlers'},
   {id:'top', name:'Top hat'}, {id:'crown', name:'Crown'}, {id:'party', name:'Party hat'},
   {id:'cowboy', name:'Cowboy hat'}, {id:'beanie', name:'Beanie'}, {id:'wizard', name:'Wizard hat'},
   {id:'propeller', name:'Propeller cap'}, {id:'bow', name:'Big bow'}, {id:'pirate', name:'Pirate hat'}
 ];
 const JEWELS = [
-  {id:'none', name:'None'}, {id:'acorns', name:'Acorn necklace', isNew:true}, {id:'chain', name:'Gold chain'}, {id:'pearls', name:'Pearls'}, {id:'ruby', name:'Ruby pendant'},
+  {id:'none', name:'None'}, {id:'acorns', name:'Acorn necklace'}, {id:'chain', name:'Gold chain'}, {id:'pearls', name:'Pearls'}, {id:'ruby', name:'Ruby pendant'},
   {id:'medal', name:'Gold medal'}, {id:'hoops', name:'Hoop earrings'}, {id:'bracelets', name:'Bracelets'}, {id:'bling', name:'Diamond bling'}
 ];
 const HAT_IDS = HATS.map(h => h.id), JEWEL_IDS = JEWELS.map(j => j.id);
+// Hats & jewelry → Holidays. Everything here can be worn any time of year.
+const HOLIDAYS = [
+  {e:'🎆', name:"New Year's", when:'January 1', hats:['newyear']},
+  {e:'💘', name:"Valentine's Day", when:'February 14', hats:['heartband']},
+  {e:'☘️', name:"St. Patrick's Day", when:'March 17', hats:['leprechaun']},
+  {e:'🐣', name:'Easter', when:'Spring', hats:['eggshell']},
+  {e:'💐', name:"Mother's Day", when:'May', hats:['flowercrown']},
+  {e:'🎣', name:"Father's Day", when:'June', hats:['fishhat']},
+  {e:'🎇', name:'Fourth of July', when:'July 4', hats:['unclesam']},
+  {e:'🎃', name:'Halloween', when:'October 31', hats:['witch', 'pumpkin']},
+  {e:'🦃', name:'Thanksgiving', when:'November', hats:['turkeyhat', 'pilgrim', 'leaves', 'chef', 'pie'], jews:['acorns'], ex:'turkey'},
+  {e:'🕎', name:'Hanukkah', when:'December', hats:['dreidel']},
+  {e:'🎄', name:'Christmas', when:'December 25', hats:['santa', 'antlers']}
+];
+const HOL_ITEMS = new Set(HOLIDAYS.flatMap(H => [...H.hats, ...(H.jews || [])]));
+function hatStar(c, x, y, r, col){ c.fillStyle = col; c.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI/2 + k*Math.PI/5, q = k % 2 ? r*.45 : r; c.lineTo(x + Math.cos(a)*q, y + Math.sin(a)*q); } c.closePath(); c.fill(); }
+function hatHeart(c, x, y, z){ c.beginPath(); c.moveTo(x, y + z*.38); c.bezierCurveTo(x - z*1.05, y - z*.35, x - z*.5, y - z*1.05, x, y - z*.45); c.bezierCurveTo(x + z*.5, y - z*1.05, x + z*1.05, y - z*.35, x, y + z*.38); c.closePath(); }
+function hatClover(c, x, y, z, col){
+  c.fillStyle = col;
+  for (let q = 0; q < 3; q++) { const a = -Math.PI/2 + q*Math.PI*2/3; c.beginPath(); c.arc(x + Math.cos(a - .35)*z*.42, y + Math.sin(a - .35)*z*.42, z*.3, 0, 7); c.arc(x + Math.cos(a + .35)*z*.42, y + Math.sin(a + .35)*z*.42, z*.3, 0, 7); c.fill(); }
+  c.strokeStyle = col; c.lineWidth = z*.14; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + z*.25, y + z*.6, x + z*.05, y + z*.95); c.stroke();
+}
 const GOLD = '#e8bf4f', GOLD_D = '#8a6720', INK = '#141a3c';
 // (x, y) is the top middle of the head.
 function drawHat(c, id, x, y, t){
   if (!id || id === 'none') return;
   c.save(); c.translate(x, y); c.lineJoin = 'round'; c.lineCap = 'round'; c.lineWidth = 1;
   const fs = (f, st) => { c.fillStyle = f; c.strokeStyle = st || INK; c.fill(); c.stroke(); };
-  if (id === 'top') {
+  if (id === 'newyear') {   // a sparkly top hat for New Year's
+    c.beginPath(); c.ellipse(0, .4, 8.5, 1.8, 0, 0, 7); fs('#1b1530');
+    rr(c, -5, -10.5, 10, 11, 1.2); fs('#1b1530');
+    c.fillStyle = GOLD; c.fillRect(-5, -3.2, 10, 2.2);
+    const tw = .6 + .4*Math.sin((t || 0)*8); hatStar(c, 6.6, -10.2, 2.2*tw, '#fff3a0'); hatStar(c, -7.2, -6.4, 1.5*(1.4 - tw), GOLD);
+  } else if (id === 'heartband') {   // a headband with two hearts on springs
+    c.strokeStyle = '#ff5d9e'; c.lineWidth = 1.6; c.beginPath(); c.arc(0, 5, 7, Math.PI*1.12, Math.PI*1.88); c.stroke();
+    for (const s of [-1, 1]) {
+      const bob = Math.sin((t || 0)*6 + s)*.6, sx = s*3.2, sy = -.8, tx = s*5, ty = -10.5 + bob;
+      c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = .6; c.beginPath(); c.moveTo(sx, sy);
+      for (let q = 1; q <= 6; q++) { const k = q/6; c.lineTo(sx + (tx - sx)*k + (q % 2 ? .7 : -.7), sy + (ty + 1.6 - sy)*k); } c.stroke();
+      hatHeart(c, tx, ty, 3.4); fs(s < 0 ? '#ff5d9e' : '#ff3b6b');
+    }
+  } else if (id === 'leprechaun') {   // a green hat with a buckle and a shamrock
+    c.beginPath(); c.ellipse(0, .3, 9.5, 2, 0, 0, 7); fs('#1c8a43');
+    c.beginPath(); c.moveTo(-5.6, .4); c.lineTo(-4.6, -10); c.lineTo(4.6, -10); c.lineTo(5.6, .4); c.closePath(); fs('#1f9a4b');
+    c.fillStyle = '#16121f'; c.fillRect(-5.3, -3.6, 10.6, 2.8);
+    c.fillStyle = GOLD; c.strokeStyle = GOLD_D; c.lineWidth = .6; rr(c, -2.2, -4.4, 4.4, 4.2, .6); c.fill(); c.stroke();
+    c.fillStyle = '#16121f'; c.fillRect(-1, -3.2, 2, 1.8);
+    hatClover(c, 2.6, -7.2, 3.4, '#8ff0a0');
+  } else if (id === 'eggshell') {   // the top of a painted Easter egg
+    c.beginPath(); c.moveTo(-6.4, 1);
+    for (const [zx, zy] of [[-4.8, -.4], [-3.2, 1.2], [-1.6, -.4], [0, 1.2], [1.6, -.4], [3.2, 1.2], [4.8, -.4], [6.4, 1]]) c.lineTo(zx, zy);
+    c.bezierCurveTo(6.8, -7.5, 3.2, -12.5, 0, -12.5); c.bezierCurveTo(-3.2, -12.5, -6.8, -7.5, -6.4, 1); c.closePath(); fs('#9fd8ff');
+    c.save(); c.clip();
+    c.lineWidth = 1.3; c.strokeStyle = '#fff59a'; c.beginPath(); c.moveTo(-7, -3.2); c.quadraticCurveTo(0, -1.4, 7, -3.8); c.stroke();
+    c.strokeStyle = '#ff9fd0'; c.beginPath(); c.moveTo(-7, -7); c.quadraticCurveTo(0, -5.2, 7, -7.6); c.stroke();
+    c.fillStyle = '#ffffff'; for (const [ex, ey] of [[-3, -5.2], [2.4, -5.4], [0, -9.8], [3.8, -1.6], [-4, -1.2]]) { c.beginPath(); c.arc(ex, ey, .7, 0, 7); c.fill(); }
+    c.restore();
+  } else if (id === 'flowercrown') {   // a crown of little flowers
+    const cols = ['#ff8fc0', '#ffd447', '#b28cff', '#ff9f6b', '#8fd9ff'];
+    c.strokeStyle = '#4caf50'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, .4, 6.6, 2.6, 0, Math.PI, Math.PI*2); c.stroke();
+    for (let j = 0; j < 6; j++) {
+      const a = Math.PI*(1 + j/5), x = Math.cos(a)*6.6, y = .4 + Math.sin(a)*2.6 - 1, z = j % 2 ? 1.5 : 1.8;
+      c.fillStyle = cols[j % cols.length];
+      for (let q = 0; q < 5; q++) { const pa = q/5*Math.PI*2 + j; c.beginPath(); c.arc(x + Math.cos(pa)*z, y + Math.sin(pa)*z, z*.72, 0, 7); c.fill(); }
+      c.fillStyle = '#fff6c2'; c.beginPath(); c.arc(x, y, z*.6, 0, 7); c.fill();
+    }
+  } else if (id === 'fishhat') {   // Dad's fishing hat with a lure on the side
+    c.beginPath(); c.ellipse(0, .6, 10, 2.6, 0, 0, 7); fs('#9a8f5a');
+    c.beginPath(); c.moveTo(-6, .4); c.quadraticCurveTo(-5.4, -8.5, 0, -8.5); c.quadraticCurveTo(5.4, -8.5, 6, .4); c.closePath(); fs('#b5a96c');
+    c.fillStyle = '#6d6440'; c.fillRect(-5.9, -2.6, 11.8, 1.6);
+    c.save(); c.translate(4.2, -5.2); c.rotate(Math.sin((t || 0)*4)*.25);
+    c.strokeStyle = '#d6dbe8'; c.lineWidth = .4; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, 1.2); c.stroke();
+    c.beginPath(); c.ellipse(0, 3, 1, 1.9, 0, 0, 7); fs('#ff7a3d');
+    c.fillStyle = '#ffd447'; c.beginPath(); c.moveTo(-1, 4.8); c.lineTo(1, 4.8); c.lineTo(0, 3.8); c.closePath(); c.fill();
+    c.restore();
+  } else if (id === 'unclesam') {   // a stars-and-stripes top hat
+    c.beginPath(); c.ellipse(0, .4, 9, 1.9, 0, 0, 7); fs('#2b4fb8');
+    const body = () => { c.beginPath(); c.moveTo(-5, .4); c.lineTo(-4.3, -12.5); c.lineTo(4.3, -12.5); c.lineTo(5, .4); c.closePath(); };
+    c.save(); body(); c.fillStyle = '#ffffff'; c.fill(); c.clip();
+    c.fillStyle = '#e8343f'; for (let q = 0; q < 5; q++) c.fillRect(-5.4 + q*2.2, -13, 1.1, 14);
+    c.fillStyle = '#2b4fb8'; c.fillRect(-5.4, -4.2, 10.8, 2.8); c.restore();
+    body(); c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
+    for (const sx of [-2.4, 0, 2.4]) hatStar(c, sx, -2.8, .9, '#ffffff');
+  } else if (id === 'witch') {   // a bendy witch hat
+    c.beginPath(); c.ellipse(0, .4, 10, 2.2, 0, 0, 7); fs('#231a33', '#0d0918');
+    c.beginPath(); c.moveTo(-5.5, 0); c.lineTo(5.5, 0); c.quadraticCurveTo(2, -9, 6.2, -16); c.quadraticCurveTo(-1.5, -10, -5.5, 0); c.closePath(); fs('#2a1f3d', '#0d0918');
+    c.fillStyle = '#8a4dff'; c.beginPath(); c.moveTo(-5.4, -.6); c.lineTo(5.4, -.6); c.lineTo(4.7, -2.8); c.lineTo(-4.7, -2.8); c.closePath(); c.fill();
+    c.strokeStyle = GOLD; c.lineWidth = .6; c.strokeRect(-1.1, -2.9, 2.2, 2.4);
+  } else if (id === 'pumpkin') {   // a little glowing jack-o'-lantern
+    const py = -4.6;
+    for (const [ox, w] of [[-3.1, 3.3], [3.1, 3.3], [0, 3.7]]) { c.beginPath(); c.ellipse(ox, py, w, 4.6, 0, 0, 7); fs('#ff8a1f', '#7a3a08'); }
+    c.fillStyle = '#3b7d2a'; c.fillRect(-.5, py - 6.2, 1, 2);
+    const glow = .75 + .25*Math.sin((t || 0)*10); c.fillStyle = `rgba(255,${Math.round(200 + 40*glow)},90,${glow.toFixed(2)})`;
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s*2.7, py - 2); c.lineTo(s*1.1, py - .3); c.lineTo(s*3.6, py - .3); c.closePath(); c.fill(); }
+    c.beginPath(); c.moveTo(-3.4, py + 1); c.lineTo(-1.8, py + 2.2); c.lineTo(-.6, py + 1.2); c.lineTo(.6, py + 2.2); c.lineTo(1.8, py + 1.2); c.lineTo(3.4, py + 1); c.lineTo(2, py + 3); c.lineTo(-2, py + 3); c.closePath(); c.fill();
+  } else if (id === 'dreidel') {   // a dreidel spinning on top
+    c.save(); c.translate(0, .6); c.rotate(Math.sin((t || 0)*12)*.18);
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(-4.2, -4.2); c.lineTo(-4.2, -10.8); c.lineTo(4.2, -10.8); c.lineTo(4.2, -4.2); c.closePath(); fs('#3d7bff', '#14205a');
+    c.fillStyle = '#dfe8ff'; c.fillRect(-.7, -14, 1.4, 3.3);
+    c.fillStyle = '#c9d4f2'; c.fillRect(-4.2, -6.6, 8.4, 1.1);
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-3.3, -10, 1.2, 5);
+    c.restore();
+  } else if (id === 'santa') {   // a floppy Santa hat
+    const flop = Math.sin((t || 0)*4)*.6;
+    c.beginPath(); c.moveTo(-6.2, -.6); c.quadraticCurveTo(-2.2, -14, 8.4 + flop, -9.4); c.quadraticCurveTo(3.3, -8.4, 6.2, -.6); c.closePath(); fs('#e3263b');
+    c.beginPath(); c.ellipse(0, -.4, 7.4, 2.2, 0, 0, 7); fs('#ffffff');
+    c.beginPath(); c.arc(8.8 + flop, -9.2, 1.9, 0, 7); fs('#ffffff');
+  } else if (id === 'antlers') {   // reindeer antlers with a jingle bell
+    c.strokeStyle = '#8a5a2b'; c.lineWidth = 1.5;
+    for (const s of [-1, 1]) {
+      c.beginPath(); c.moveTo(s*2.6, -.6); c.quadraticCurveTo(s*3.6, -8.5, s*7.6, -12.2); c.stroke();
+      c.beginPath(); c.moveTo(s*3.4, -5.8); c.lineTo(s*6.6, -6.4); c.moveTo(s*4.8, -9); c.lineTo(s*3.8, -12.2); c.stroke();
+    }
+    c.beginPath(); c.arc(0, -1, 1.6, 0, 7); fs(GOLD, GOLD_D);
+    c.fillStyle = GOLD_D; c.beginPath(); c.arc(0, -.4, .4, 0, 7); c.fill();
+  } else if (id === 'top') {
     c.beginPath(); c.ellipse(0, .4, 8.5, 1.8, 0, 0, 7); fs('#22222e');
     rr(c, -5, -10.5, 10, 11, 1.2); fs('#22222e');
     c.fillStyle = '#d4475f'; c.fillRect(-5, -3.2, 10, 2.2);
@@ -3422,15 +3606,17 @@ const previews = [];
 const unlocked = i => { const b = save.play === 'guard' ? save.bestG : save.best; return i === 0 || !!LEVELS[i].special || b[i-1] > 0; };
 const gemWord = () => world && world.L && world.L.feast ? 'rolls' : 'gems';
 function renderMenu(){
+  if (save.mode === 'hunt') save.mode = 'nights';   // Huntdown left the menu when the game moved into TtGamer15 Games
   const hunt = save.mode === 'hunt', guard = hunt ? save.huntAs !== 'giant' : save.play === 'guard';
-  $('modeNights').setAttribute('aria-pressed', String(!hunt)); $('modeHunt').setAttribute('aria-pressed', String(hunt));
   $('playEx').textContent = hunt ? 'The giant' : 'An exhibit'; $('playGuard').textContent = hunt ? 'A night guard' : 'The night guard';
   $('playEx').setAttribute('aria-pressed', String(!guard)); $('playGuard').setAttribute('aria-pressed', String(guard));
   $('exhibitGroup').hidden = guard; $('exhibitLbl').textContent = hunt ? 'Choose your giant' : 'Choose your exhibit';
   $('nightLbl').textContent = hunt ? 'Huntdown' : 'Pick a night';
   const list = $('exhibitList');
+  const wantTurkey = save.exhibit === 'turkey';
+  if (list.children.length && !!list.querySelector('[data-id="turkey"]') !== wantTurkey) { list.textContent = ''; previews.length = 0; }
   if (!list.children.length) {
-    for (const e of EXHIBITS) {
+    for (const e of EXHIBITS.filter((e) => e.id !== 'turkey' || wantTurkey)) {
       const b = document.createElement('button'); b.className = 'exhibit'; b.type = 'button'; b.dataset.id = e.id;
       const cv = document.createElement('canvas');
       const nm = document.createElement('b'); nm.textContent = e.name;
@@ -3447,8 +3633,9 @@ function renderMenu(){
   if (hunt) { nl.append(huntCard(guard)); $('btnPlay').textContent = guard ? 'Start Huntdown' : 'Start the hunt'; syncSoundButtons(); renderFriends(); return; }
   const best = guard ? save.bestG : save.best;
   const firstOpen = best.findIndex(s => s === 0);
-  if (game.sel == null || !unlocked(game.sel)) game.sel = firstOpen === -1 ? 0 : firstOpen;
+  if (game.sel == null || !unlocked(game.sel) || LEVELS[game.sel].special) game.sel = firstOpen === -1 || LEVELS[firstOpen].special ? 0 : firstOpen;
   LEVELS.forEach((L, i) => {
+    if (L.special) return;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'night';
     const open = unlocked(i), s = best[i];
     b.disabled = !open; b.setAttribute('aria-pressed', String(i === game.sel));
@@ -3504,7 +3691,9 @@ function demoWorld(i){
   me.role = null; me.ent = null; checkOrientation();
 }
 if (BETA) { $('betaTag').hidden = false; $('betaNote').hidden = false; document.title = 'Museum After Dark BETA'; }
+let ttgMounted = false;
 function openMenu(){
+  if (!ttgMounted && window.TTG) { ttgMounted = true; TTG.mount(document.querySelector('#menu .card'), document.querySelector('#menu h1'), document.querySelector('#menu .eyebrow')); }
   if (NET.room) leaveRoom(true);
   game.mode = 'menu'; game.kind = 'solo'; stick.active = aimStick.active = false;
   demoWorld(FEAST && FEAST_I >= 0 ? FEAST_I : 0);
@@ -4092,7 +4281,7 @@ function renderRoom(){
   $('roomNightLbl').hidden = ns.hidden = hunt;
   $('botLbl').textContent = hunt ? 'Bot guards' : 'Bot exhibits';
   $('roomTip').innerHTML = hunt ? HUNT_ROOM_TIP : '<b>Team rules:</b> Exhibits grab gems and carry them back to their pedestals. Get caught carrying one and it goes back where it was. Exhibits win when every gem is home. Guards win at 6:00 AM, or by catching every exhibit three times.';
-  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = L.special ? '🦃' : ROMAN[i]; b.setAttribute('aria-label', `${nightName(i)}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); roomDemo(); renderRoom(); }); ns.append(b); });
+  if (!ns.children.length) LEVELS.forEach((L, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = L.special ? '🦃' : ROMAN[i]; b.hidden = !!L.special; b.setAttribute('aria-label', `${nightName(i)}: ${L.name}`); b.addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.nt = i; sendPres(true); roomDemo(); renderRoom(); }); ns.append(b); });
   [...ns.children].forEach((b, i) => { b.setAttribute('aria-pressed', String(i === NET.cfg.nt)); b.disabled = !host; });
   const L = LEVELS[NET.cfg.nt];
   $('roomNightName').textContent = hunt ? `${HUNT.name} · One giant hunts the night guards` + (host ? '' : ' · The host picks the game') : `${L.name} · ${L.guards.length} ${L.guards.length > 1 ? 'guards' : 'guard'} · ${L.map.join('').split('*').length - 1} gems` + (host ? '' : ' · The host picks the night');
@@ -4373,7 +4562,7 @@ function renderRoomFriends(){
 }
 
 /* ---------- dress up: hats & jewelry ---------- */
-const dress = {who:'ex', built:false};
+const dress = {who:'ex', built:false, tab:'every'};
 const dressLook = () => dress.who === 'guard' ? save.lookG : save.lookEx;
 function openCloset(){
   game.mode = 'closet'; dress.who = save.play === 'guard' ? 'guard' : 'ex';
@@ -4401,16 +4590,48 @@ function buildCloset(){
   if (dress.built) return; dress.built = true;
   const mk = (list, host, kind) => {
     for (const it of list) {
+      if (HOL_ITEMS.has(it.id)) continue;   // holiday things live in the Holidays tab
       const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.dataset.id = it.id;
       const cv = iconCanvas(); (kind === 'hat' ? hatIcon : jewIcon)(cv, it.id);
       const nm = document.createElement('span'); nm.textContent = it.name;
       b.append(cv, nm);
-      if (it.isNew) { const t = document.createElement('span'); t.className = 'pick-new'; t.textContent = '🦃'; t.title = 'New in the Turkey Rolls update'; b.append(t); }
       b.addEventListener('click', () => { dressLook()[kind] = it.id; persist(); SFX.click(); renderCloset(); });
       host.append(b);
     }
   };
   mk(HATS, $('hatList'), 'hat'); mk(JEWELS, $('jewList'), 'jew');
+  const host = $('holList');
+  for (const H of HOLIDAYS) {
+    const sec = document.createElement('div'); sec.className = 'hol';
+    const hd = document.createElement('h3'); hd.className = 'section-label hol-head';
+    const em = document.createElement('span'); em.className = 'hol-em'; em.textContent = H.e;
+    const nm = document.createElement('span'); nm.textContent = H.name;
+    const wh = document.createElement('small'); wh.textContent = H.when; hd.append(em, nm, wh);
+    const picks = document.createElement('div'); picks.className = 'picks';
+    for (const id of H.hats) picks.append(holPick('hat', id));
+    for (const id of H.jews || []) picks.append(holPick('jew', id));
+    if (H.ex) picks.append(holPick('ex', H.ex));
+    sec.append(hd, picks); host.append(sec);
+  }
+}
+// One holiday thing to wear. Tap it to put it on, tap it again to take it off.
+function holPick(kind, id){
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pick'; b.dataset.kind = kind; b.dataset.id = id;
+  const cv = iconCanvas();
+  if (kind === 'hat') hatIcon(cv, id); else if (kind === 'jew') jewIcon(cv, id); else exIcon(cv, id);
+  const nm = document.createElement('span'); nm.textContent = kind === 'ex' ? exName(id) : (kind === 'hat' ? HATS : JEWELS).find(x => x.id === id).name;
+  b.append(cv, nm);
+  b.addEventListener('click', () => {
+    if (kind === 'ex') { const on = save.exhibit !== id; save.exhibit = on ? id : 'dino'; if (on) SFX.gobble(); else SFX.click(); }
+    else { const lk = dressLook(); lk[kind] = lk[kind] === id ? 'none' : id; SFX.click(); }
+    persist(); renderCloset();
+  });
+  return b;
+}
+function exIcon(cv, id){
+  const c = cv.getContext('2d'); c.clearRect(0, 0, 80, 80);
+  c.save(); c.setTransform(1.9, 0, 0, 1.9, 40, 74);
+  drawFigure(c, {kind:id, moving:false, wob:false, phase:0, pose:posesFor(id)[0], face:1, t:0}, 0, 0); c.restore();
 }
 function renderCloset(){
   buildCloset();
@@ -4419,7 +4640,15 @@ function renderCloset(){
   $('dressName').textContent = g ? 'Night guard' : exName(save.exhibit);
   for (const b of $('hatList').children) b.setAttribute('aria-pressed', String(b.dataset.id === lk.hat));
   for (const b of $('jewList').children) b.setAttribute('aria-pressed', String(b.dataset.id === lk.jew));
+  for (const b of $('holList').querySelectorAll('.pick')) {
+    const k = b.dataset.kind; b.hidden = k === 'ex' && g;
+    b.setAttribute('aria-pressed', String(k === 'ex' ? save.exhibit === b.dataset.id : lk[k] === b.dataset.id));
+  }
+  $('tabEvery').setAttribute('aria-pressed', String(dress.tab === 'every')); $('tabHol').setAttribute('aria-pressed', String(dress.tab === 'hol'));
+  $('closetEvery').hidden = dress.tab !== 'every'; $('closetHol').hidden = dress.tab !== 'hol';
 }
+$('tabEvery').addEventListener('click', () => { dress.tab = 'every'; SFX.click(); renderCloset(); });
+$('tabHol').addEventListener('click', () => { dress.tab = 'hol'; SFX.click(); renderCloset(); });
 function drawCloset(){
   const cv = $('dressPreview'), c = cv.getContext('2d'), g = dress.who === 'guard';
   c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 300, 300);
@@ -4537,8 +4766,6 @@ $('btnPlay').addEventListener('click', () => { audioInit(); openIntro(game.sel);
 $('btnFriends').addEventListener('click', () => { audioInit(); openOnline(); });
 $('playEx').addEventListener('click', () => { if (save.mode === 'hunt') save.huntAs = 'giant'; else save.play = 'ex'; persist(); renderMenu(); });
 $('playGuard').addEventListener('click', () => { if (save.mode === 'hunt') save.huntAs = 'guard'; else save.play = 'guard'; persist(); renderMenu(); });
-$('modeNights').addEventListener('click', () => { save.mode = 'nights'; persist(); audioInit(); renderMenu(); });
-$('modeHunt').addEventListener('click', () => { save.mode = 'hunt'; persist(); audioInit(); renderMenu(); });
 $('roomModeN').addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.md = 'n'; sendPres(true); renderRoom(); });
 $('roomModeH').addEventListener('click', () => { if (!NET.isHost) return; NET.cfg.md = 'h'; sendPres(true); renderRoom(); });
 $('btnLightsOut').addEventListener('click', startSolo);

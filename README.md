@@ -4,4 +4,4 @@ A sneaking game based on the playground freeze game "Night at the Museum". Play 
 
 Play: https://ttgamer15.github.io/Museum-After-Dark/
 
-Beta (test copy with the newest update, its own save and online rooms): https://ttgamer15.github.io/Museum-After-Dark/beta/
+Museum After Dark is part of TtGamer15 Games: https://ttgamer15.github.io/
