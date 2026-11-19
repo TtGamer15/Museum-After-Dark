@@ -528,6 +528,7 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
 </div>
 
 <style>
+html{touch-action:manipulation}
 /* TtGamer15 Games: the back button (when you came from the app) and the "moving" box (old Home Screen apps). */
 .ttg-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;justify-self:start;margin:0 0 4px;padding:7px 13px 7px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:inherit;font:600 13px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif;cursor:pointer;text-decoration:none;touch-action:manipulation}
 .ttg-back:hover{background:rgba(255,255,255,.14)}
@@ -558,16 +559,19 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
     } catch (e) { /* storage off */ }
     return 'TTGSAVE1:' + JSON.stringify({ from: GAME, at: Date.now(), k: k });
   }
+  // iPhones are picky about copying, so copy two ways while the tap still counts:
+  // the old select-and-copy way right now, and the newer clipboard way too.
   function copyText(text) {
-    var done = function (ok) { return ok; };
-    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(); });
-    return Promise.resolve(fallback());
-    function fallback() {
-      var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-      document.body.appendChild(ta); ta.select(); try { ta.setSelectionRange(0, text.length); } catch (e) { /* old */ }
-      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      ta.remove(); return done(ok);
-    }
+    var ok = false;
+    try {
+      var was = document.activeElement, ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:-9999px;width:2px;height:2px;padding:0;border:0;margin:0;font-size:16px;-webkit-user-select:text;user-select:text';
+      document.body.appendChild(ta); ta.focus({ preventScroll: true }); ta.select(); ta.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy');
+      ta.blur(); ta.remove(); try { window.getSelection().removeAllRanges(); if (was && was.focus) was.focus({ preventScroll: true }); } catch (e) { /* fine */ }
+    } catch (e) { ok = false; }
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return ok; });
+    return Promise.resolve(ok);
   }
   function download(text) {
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
@@ -591,11 +595,11 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
       if (!onSite) return;
       var box = el('div', 'ttg-move'); box.id = 'ttgMove';
       var p = el('p'); p.appendChild(document.createTextNode('🎮 ' + NAME + ' is now part of ')); p.appendChild(el('b', null, 'TtGamer15 Games')); p.appendChild(document.createTextNode(', one app with all of TtGamer15\'s games.'));
-      var p2 = el('p'); p2.appendChild(el('small', null, 'Moving over? Tap Copy my save, open TtGamer15 Games, then go to Settings → Bring in a save → Paste.'));
+      var p2 = el('p'), note = el('small', null, 'Moving over? Tap Copy my save, open TtGamer15 Games, tap the gear, then Paste.'); p2.appendChild(note);
       var row = el('div', 'ttg-row');
       var go = el('a', 'ttg-go', 'Open TtGamer15 Games'); go.href = HUB_URL;
       var cp = el('button', null, 'Copy my save'); cp.type = 'button'; cp.id = 'ttgCopy';
-      cp.addEventListener('click', function () { copyText(exportSave()).then(function (ok) { cp.textContent = ok ? 'Copied! ✓' : 'Couldn\'t copy. Try Save file'; }); });
+      cp.addEventListener('click', function () { copyText(exportSave()).then(function (ok) { cp.textContent = ok ? 'Copied! ✓' : 'Couldn\'t copy. Tap Save file'; if (ok) note.textContent = 'Copied! Now open TtGamer15 Games, tap the gear, then Paste.'; }); });
       var dl = el('button', null, 'Save file'); dl.type = 'button'; dl.id = 'ttgFile';
       dl.addEventListener('click', function () { download(exportSave()); });
       row.appendChild(cp); row.appendChild(dl); row.appendChild(go);
