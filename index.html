@@ -230,6 +230,7 @@ button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var
 #app.pad .padfocus{outline:3px solid var(--torch)!important;outline-offset:3px!important;box-shadow:0 0 0 7px color-mix(in srgb,var(--torch) 24%,transparent)!important}
 #padHint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--sb) + 12px);width:max-content;max-width:calc(100% - 24px);display:none;gap:6px 16px;align-items:center;justify-content:center;flex-wrap:wrap;padding:7px 14px;border-radius:999px;background:color-mix(in srgb,var(--gallery) 92%,transparent);border:1px solid color-mix(in srgb,var(--brass) 45%,transparent);font-size:13px;font-weight:600;pointer-events:none;z-index:7}
 #app.pad #padHint.show{display:flex}
+#app.pad .panel{padding-bottom:calc(var(--sb) + 76px);scroll-padding-bottom:76px}   /* room so the highlighted button never sits under the controller hints */
 #padHint .ph{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .padmap{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .padmap li{display:flex;align-items:center;gap:10px}
@@ -644,6 +645,8 @@ html{touch-action:manipulation}
         if (host) {
           // The app shows this game when it's ready, and builds the menu in while its own menu slides away.
           try { host.ready({ win: window, game: GAME, reveal: function (t) { buildIn(card, t); }, leave: function () { return takeApart(card, function () {}); } }); } catch (e) { /* fine */ }
+          // playing with a controller in the app: this game is ready for it right away
+          try { if (host.padInUse && host.padInUse() && window.ttgPadWake) setTimeout(function () { window.ttgPadWake(); }, 0); } catch (e) { /* fine */ }
           return;
         }
         var t = readTrip(); if (t) buildIn(card, t);
@@ -2568,6 +2571,7 @@ function padPress(el){
 }
 function padBackFor(scr){
   if (scr === 'result') return game.kind === 'room' ? 'btnResPrimary' : 'btnResMenu';
+  if (scr === 'menu' && $('ttgBack')) return 'ttgBack';   // B on the main menu goes back to TtGamer15 Games when it opened this game
   return PAD_BACK[scr];
 }
 function padPoll(now){
@@ -2575,6 +2579,7 @@ function padPoll(now){
   const p = padGet(); if (!p) { padIn.x = padIn.y = padIn.rot = 0; padIn.aim = null; return; }
   const std = p.mapping === 'standard';
   const cur = p.buttons.map(x => !!x && (x.pressed || x.value > .5));
+  if (!GP.seen) { GP.seen = true; cur.forEach((v, i) => { if (v) GP.hold.add(i); }); }   // a button already down when the controller shows up just wakes it
   for (const i of [...GP.hold]) if (!cur[i]) GP.hold.delete(i);
   const hit = i => cur[i] && !GP.prev[i] && !GP.hold.has(i);
   const ax = p.axes || [], lx = ax[0] || 0, ly = ax[1] || 0, rx = std ? ax[2] || 0 : 0, ry = std ? ax[3] || 0 : 0;
@@ -2636,6 +2641,8 @@ function padHintUpdate(scr, now){
   }
   if (key !== GP.hintKey) { GP.hintKey = key; el.innerHTML = html; el.classList.toggle('show', !!key); }
 }
+// Opened from TtGamer15 Games while using a controller: be ready for it straight away.
+window.ttgPadWake = () => { GP.connected = true; GP.seen = false; padUse(); };
 addEventListener('gamepadconnected', () => { GP.connected = true; padUse(); hint('Controller connected', 2000); });
 addEventListener('gamepaddisconnected', () => { if (!padGet()) { GP.connected = false; padOff(); } });
 // Touching the screen, the mouse or the keyboard switches the hints back.
