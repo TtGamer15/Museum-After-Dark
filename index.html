@@ -553,6 +553,8 @@ html{touch-action:manipulation}
   // Playing inside the TtGamer15 Games app page (the same page as the menu, no page load in between)
   try { if (window.parent && window.parent !== window && window.parent.TTG_HOST) host = window.parent.TTG_HOST; } catch (e) { host = null; }
   if (host) hub = true;
+  // In the Android app, the controller comes through the TtGamer15 Games page
+  if (host && host.native && host.pads) { try { Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: function () { return host.pads(); } }); } catch (e) { /* fine */ } }
   // The app tells us how much room the iPhone's notch and home bar take, since a game inside the page may not be told.
   function insets() { try { var v = host.safe(), r = document.documentElement.style; ['top', 'right', 'bottom', 'left'].forEach(function (k) { r.setProperty('--ttg-sa-' + k, (v[k] || 0) + 'px'); }); } catch (e) { /* fine */ } }
   if (host) { insets(); addEventListener('resize', insets); }
@@ -2643,6 +2645,8 @@ function padHintUpdate(scr, now){
 }
 // Opened from TtGamer15 Games while using a controller: be ready for it straight away.
 window.ttgPadWake = () => { GP.connected = true; GP.seen = false; padUse(); };
+// The phone's back button inside TtGamer15 Games: does what B does on this screen ('none' when there's nothing to go back to here).
+window.ttgBackKey = () => { const scr = padScreen(); if (!scr) return 'busy'; const id = padBackFor(scr), b = id && $(id); if (b && !b.hidden && b.getClientRects().length) { b.click(); return 'done'; } return 'none'; };
 addEventListener('gamepadconnected', () => { GP.connected = true; padUse(); hint('Controller connected', 2000); });
 addEventListener('gamepaddisconnected', () => { if (!padGet()) { GP.connected = false; padOff(); } });
 // Touching the screen, the mouse or the keyboard switches the hints back.
